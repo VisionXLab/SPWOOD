@@ -28,7 +28,7 @@ detector = dict(
         relu_before_extra_convs=True),
     bbox_head=dict(
         type='SemiMixHead',
-        num_classes=16,
+        num_classes=15,
         in_channels=256,
         stacked_convs=4,
         feat_channels=256,
@@ -81,7 +81,7 @@ detector = dict(
 model = dict(
     type="MCLTeacher",
     model=detector,
-    semi_loss=dict(type='Semi_GmmLoss', cls_channels=16),
+    semi_loss=dict(type='Semi_GmmLoss', cls_channels=15),
     train_cfg=dict(
         iter_count=0,
         burn_in_steps=12800,
@@ -142,8 +142,8 @@ sup_pipeline = [
     dict(type='LoadAnnotations', with_bbox=True),
     dict(type='ConvertWeakSupervision1',   ####
         # rbox_proportion
-        point_proportion=0.7,
-        hbox_proportion=0.0,
+        point_proportion=0.0,
+        hbox_proportion=1.0,
         modify_labels=True,
         version=angle_version),
     dict(type='RResize', img_scale=(1024, 1024)),
@@ -181,8 +181,7 @@ dataset_type = 'DOTADataset'
 classes = ('plane', 'baseball-diamond', 'bridge', 'ground-track-field',
            'small-vehicle', 'large-vehicle', 'ship', 'tennis-court',
            'basketball-court', 'storage-tank', 'soccer-ball-field',
-           'roundabout', 'harbor', 'swimming-pool', 'helicopter',
-           'container-crane')
+           'roundabout', 'harbor', 'swimming-pool', 'helicopter')
 data = dict(
     samples_per_gpu=3,
     workers_per_gpu=5,
@@ -190,15 +189,15 @@ data = dict(
         type="SemiDataset",
         sup=dict(
             type=dataset_type,
-            ann_file="/mnt/nas-new/home/zhanggefan/lmx/data/train_30p_labeled/annfiles/",##########
-            img_prefix="/mnt/nas-new/home/zhanggefan/lmx/data/train_30p_labeled/images/",##########
+            ann_file="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/trainval_semisparse/trainval_20p/labelunlabel/labeled_annotation/",##########
+            img_prefix="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/trainval_semisparse/trainval_20p/labelunlabel/labeled_image/",##########
             classes=classes,
             pipeline=sup_pipeline,
         ),
         unsup=dict(
             type=dataset_type,
-            ann_file="/mnt/nas-new/home/zhanggefan/lmx/data/train_30p_unlabeled/annfiles/",##########
-            img_prefix="/mnt/nas-new/home/zhanggefan/lmx/data/train_30p_unlabeled/images/",###########
+            ann_file="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/trainval_semisparse/trainval_20p/labelunlabel/unlabeled_annotation/",##########
+            img_prefix="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/trainval_semisparse/trainval_20p/labelunlabel/unlabeled_image/",###########
             classes=classes,
             pipeline=unsup_pipeline,
             filter_empty_gt=False,
@@ -206,15 +205,15 @@ data = dict(
     ),
     val=dict(
         type=dataset_type,
-        img_prefix="/mnt/nas2/home/yangxue/lmx/data/semi/val/images/",
-        ann_file="/mnt/nas2/home/yangxue/lmx/data/semi/val/annfiles/",
+        img_prefix="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/trainval/images/",
+        ann_file="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/trainval/annfiles/",
         classes=classes,
         pipeline=test_pipeline
     ),
     test=dict(
         type=dataset_type,
-        img_prefix="/mnt/nas2/home/yangxue/lmx/data/semi/val/images/",
-        ann_file="/mnt/nas2/home/yangxue/lmx/data/semi/val/annfiles/",
+        img_prefix="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/test/images/",
+        ann_file="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/test/images/",
         classes=classes,
         pipeline=test_pipeline,
     ),
