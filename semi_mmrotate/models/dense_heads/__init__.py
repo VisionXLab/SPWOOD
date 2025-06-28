@@ -4,3 +4,4 @@ from .semi_rotated_retina_head_mcl import SemiRotatedRetinaHeadMCL
 from .semi_rotated_fcos_head_iou import SemiRotatedFCOSHeadIOU
 from .semi_point2rboxv2_head import SemiPoint2RBoxV2Head
 from .semi_mix_head import SemiMixHead
+from .semi_mix_head1 import SemiMixHead1
