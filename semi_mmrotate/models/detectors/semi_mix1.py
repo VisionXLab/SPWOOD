@@ -155,6 +155,7 @@ class SemiMix1(RotatedSingleStageDetector):
                       gt_bboxes,
                       gt_labels,
                       get_data=False,
+                      rsst_flag=False,
                       gt_bboxes_ignore=None):
         """Calculate losses from a batch of inputs and data samples.
 
@@ -241,6 +242,13 @@ class SemiMix1(RotatedSingleStageDetector):
                 batch_edges = self.ted_model(img_all * std + mean)
                 self.bbox_head.edges = batch_edges[3].clamp(0)
                 # cv2.imwrite('E.png', batch_edges[0].cpu().numpy() * 255)
+        
+        # 为了rsst的loss新加
+        if rsst_flag:
+            batch_inputs_all = img
+            feat = self.extract_feat(batch_inputs_all)
+            cls_score, bbox_pred, angle_pred, centerness = self.bbox_head.forward(feat, get_data)
+            return (cls_score, bbox_pred, angle_pred, centerness)
 
         batch_inputs_all = torch.cat((img, img_aug))
         batch_data_samples_all = []
@@ -248,20 +256,8 @@ class SemiMix1(RotatedSingleStageDetector):
             data_sample = {'metainfo': img_metas, 'gt_instances': gt_instances}
             batch_data_samples_all.append(data_sample)
         
-        # 会不会是这里有问题，这里的数据有问题
-        print("新的开始")
-        print('batch_inputs_all数量: ',len(batch_inputs_all),'batch_inputs_all尺寸: ',batch_inputs_all[0].shape)    # batch_inputs_all对于sup有两张，变成4张。torch.Size([4, 3, 1408, 1408])
-        
-
-        with open('/mnt/nas-new/home/zhanggefan/zw/mcl/result_rph/debug_txt/batch_inputs_all.txt', "w") as file:
-            # 写入 batch_inputs_all[0][0] 的形状
-            file.write(f"Shape of batch_inputs_all[0][0]: {batch_inputs_all[0][0].shape}\n")
-            # 写入 batch_inputs_all[0][0] 的内容
-            file.write("Content of batch_inputs_all[0][0]:\n")
-            file.write(str(batch_inputs_all[0][0].cpu().numpy()))  # 将张量转换为 NumPy 数组并写入文件
-
         feat = self.extract_feat(batch_inputs_all)  #feat [4, 256, 176, 176][4, 256, 88, 88][4, 256, 44, 44][4, 256, 22, 22][4, 256, 11, 11]
-        print("feat数量: ", len(feat),"feat尺寸: ", feat[0].shape)
+
         cls_score, bbox_pred, angle_pred, centerness = self.bbox_head.forward(feat, get_data)
 
         if get_data:   # 这是在无监督的时候使用
