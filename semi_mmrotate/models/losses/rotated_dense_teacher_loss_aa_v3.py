@@ -212,13 +212,6 @@ def QFLv2(selected_inds,pred_sigmoid,
         pred_sigmoid, zerolabel, reduction='none') * pt.pow(beta) 
     pos = weight > 0
 
-    print("重要依据unlabel", len(selected_inds),'--',pos.sum())
-    with open('/mnt/nas-new/home/zhanggefan/zw/mcl/result_rph/debug_txt/unlabel.txt', "w") as file:
-        # 写入 batch_inputs_all[0][0] 的形状
-        file.write(f"pos : {pos.sum().cpu().numpy()}\n")
-        # 写入 batch_inputs_all[0][0] 的内容
-        file.write(f"pos : {pos.cpu().numpy()}\n")
-
     # positive goes to bbox quality 覆盖正样本的权值
     pt = teacher_sigmoid[pos] - pred_sigmoid[pos]
     loss[pos] = F.binary_cross_entropy(
