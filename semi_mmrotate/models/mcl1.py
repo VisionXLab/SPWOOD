@@ -4,6 +4,41 @@ from .rotated_semi_detector1 import RotatedSemiDetector1
 from mmrotate.models.builder import ROTATED_DETECTORS
 from mmrotate.models import build_detector
 
+def check_model_nan(model, flag):
+    for name, param in model.named_parameters():
+        if param.requires_grad:  # 只检查需要梯度的参数
+            if torch.isnan(param).any():
+                if flag==0:  # 学生
+                    print(f"student [NaN detected] Parameter '{name}' contains NaN values!")
+                else:
+                    print(f"teacher [NaN detected] Parameter '{name}' contains NaN values!")
+                return True
+    print("No NaN found in model parameters.")
+    return False
+
+def check_grad_nan(model, flag):
+    for name, param in model.named_parameters():
+        if param.requires_grad and param.grad is not None:
+            if torch.isnan(param.grad).any():
+                if flag == 0:  # 学生
+                    print(f"student [NaN detected] Gradient of parameter '{name}' contains NaN values!")
+                else:
+                    print(f"teacher [NaN detected] Gradient of parameter '{name}' contains NaN values!")
+                return True
+    print("No NaN found in model gradients.")
+    return False
+
+def check_grad_norm(model):
+    total_norm = 0.0
+    for p in model.parameters():
+        if p.grad is not None:
+            param_norm = p.grad.data.norm(2)
+            total_norm += param_norm.item() ** 2
+    total_norm = total_norm ** 0.5
+    print(f'Gradient norm: {total_norm:.4f}')
+    return total_norm
+
+
 
 @ROTATED_DETECTORS.register_module()
 class MCLTeacher1(RotatedSemiDetector1):
@@ -31,6 +66,7 @@ class MCLTeacher1(RotatedSemiDetector1):
 
     def forward_train(self, imgs, img_metas, **kwargs):
         super(MCLTeacher1, self).forward_train(imgs, img_metas, **kwargs)  # ???
+        torch.autograd.set_detect_anomaly(True)
         gt_bboxes = kwargs.get('gt_bboxes')
         gt_labels = kwargs.get('gt_labels')
 
@@ -59,8 +95,19 @@ class MCLTeacher1(RotatedSemiDetector1):
             format_data[key]['img'] = torch.stack(format_data[key]['img'], dim=0)
             # print(f"{key}: {format_data[key]['img'].shape}")
 
+        # check_grad_nan(self.student, 0)
+        # check_model_nan(self.student, 0)
+
+        # check_grad_nan(self.teacher, 1)
+        # check_model_nan(self.teacher, 1)
+
+        # if check_grad_norm(self.teacher) > 5:
+        #     print(f'Gradient norm: {check_grad_norm(self.teacher):.4f}')
+        # if check_grad_norm(self.student) > 5:
+        #     print(f'Gradient norm: {check_grad_norm(self.student):.4f}')
+
         losses = dict()
-        # supervised forward 有监督训练   format_data['sup']的键有 dict_keys(['img', 'img_metas', 'gt_bboxes', 'gt_labels']i
+        # supervised forward 有监督训练   format_data['sup']的键有 dict_keys(['img', 'img_metas', 'gt_bboxes', 'gt_labels']
         sup_losses = self.student.forward_train(**format_data['sup'])
         for key, val in sup_losses.items():
             if key[:4] == 'loss':
@@ -91,13 +138,37 @@ class MCLTeacher1(RotatedSemiDetector1):
             # 借鉴rsst
             with torch.no_grad():
                 # get teacher data
-                teacher_logits_unlabled = self.teacher.forward_train(get_data=True, **format_data['unsup_weak_unlabeled'])
-                teacher_logits_labeled = self.teacher.forward_train(get_data=True, **format_data['unsup_weak_labeled'])
-            # get student data  [2,5,152,152] [2, 15, 76, 76] [2, 15, 38, 38] [2, 15, 19, 19] 
-            student_logits_unlabeled = self.student.forward_train(get_data=True,  **format_data['unsup_strong_unlabeled'])
-            student_logits_labeled = self.student.forward_train(get_data=True, **format_data['unsup_strong_labeled'])
+                teacher_logits_unlabled = self.teacher.forward_train(get_data=True, **format_data['unsup_weak_unlabeled'], rsst_flag = True)
+                teacher_logits_labeled = self.teacher.forward_train(get_data=True, **format_data['unsup_weak_labeled'], rsst_flag = True)
+                # get student data  [2,5,152,152] [2, 15, 76, 76] [2, 15, 38, 38] [2, 15, 19, 19] 
+            student_logits_unlabeled = self.student.forward_train(get_data=True,  **format_data['unsup_strong_unlabeled'], rsst_flag = True)
+            student_logits_labeled = self.student.forward_train(get_data=True, **format_data['unsup_strong_labeled'], rsst_flag = True)
             
+            for i in range(len(teacher_logits_unlabled[2])):
+                decoder = self.teacher.bbox_head.angle_coder
+                angle_pred = teacher_logits_unlabled[2][i]
+                decoded = decoder.decode(angle_pred[0].permute(1, 2, 0).reshape(-1, decoder.encode_size))
+                teacher_logits_unlabled[2][i] = decoded.reshape\
+                    (angle_pred.shape[0], 1, angle_pred.shape[2], angle_pred.shape[3])
+
+                angle_pred = teacher_logits_labeled[2][i]
+                decoded = decoder.decode(angle_pred[0].permute(1, 2, 0).reshape(-1, decoder.encode_size))
+                teacher_logits_labeled[2][i] = decoded.reshape\
+                    (angle_pred.shape[0], 1, angle_pred.shape[2], angle_pred.shape[3])
+                
+                angle_pred = student_logits_unlabeled[2][i]
+                decoded = decoder.decode(angle_pred[0].permute(1, 2, 0).reshape(-1, decoder.encode_size))
+                student_logits_unlabeled[2][i] = decoded.reshape\
+                    (angle_pred.shape[0], 1, angle_pred.shape[2], angle_pred.shape[3])
+                
+                angle_pred = student_logits_labeled[2][i]
+                decoded = decoder.decode(angle_pred[0].permute(1, 2, 0).reshape(-1, decoder.encode_size))
+                student_logits_labeled[2][i] = decoded.reshape\
+                    (angle_pred.shape[0], 1, angle_pred.shape[2], angle_pred.shape[3])
+                
+            # mcl 
             # unsup_losses_unlabeled = self.semi_loss_unsup(teacher_logits_unlabled, student_logits_unlabeled, img_metas=format_data['unsup_weak_unlabeled'], alone_angle=True)
+            
             unsup_losses_unlabeled = self.semi_loss_unsup(teacher_logits_unlabled, student_logits_unlabeled, ratio=self.region_ratio, img_metas=format_data['unsup_weak_unlabeled'])
             unsup_losses_labeled = self.semi_loss_sup(teacher_logits_labeled, student_logits_labeled, ratio=self.region_ratio, img_metas=format_data['unsup_weak_labeled'], bbox_head=self.student.bbox_head)
 
@@ -122,25 +193,7 @@ class MCLTeacher1(RotatedSemiDetector1):
                     losses[f"{key}_unsup_labeled"] = val * 0.3
                 else:
                     losses[key] = val * 0.3
-            
-            # 之前mcl
-            # with torch.no_grad():
-            #     # get teacher data  列表A。含有4个元素。每个元素是一个列表B。B含有5个元素。
-            #     teacher_logits = self.teacher.forward_train(
-            #         get_data=True, **format_data['unsup_weak'])
 
-            # # get student data
-            # student_logits = self.student.forward_train(get_data=True, **format_data['unsup_strong'])
-            # unsup_losses = self.semi_loss(teacher_logits, student_logits, img_metas=format_data['unsup_weak'], alone_angle=True)
-
-            # for key, val in self.logit_specific_weights.items():
-            #     if key in unsup_losses.keys():
-            #         unsup_losses[key] *= val
-            # for key, val in unsup_losses.items():
-            #     if key[:4] == 'loss':
-            #         losses[f"{key}_unsup"] = unsup_weight * val
-            #     else:
-            #         losses[key] = val
         self.iter_count += 1
 
         return losses
