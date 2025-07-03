@@ -189,15 +189,15 @@ data = dict(
         type="SemiDataset",
         sup=dict(
             type=dataset_type,
-            ann_file="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/trainval_semisparse/trainval_20p/labelunlabel/labeled_annotation/",##########
-            img_prefix="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/trainval_semisparse/trainval_20p/labelunlabel/labeled_image/",##########
+            ann_file="/root/code/zz/a_data/split_ss_sparse/trainval20/sparselabelunlabel/10/labeled_annotation/",##########
+            img_prefix="/root/code/zz/a_data/split_ss_sparse/trainval20/sparselabelunlabel/10/labeled_image/",##########
             classes=classes,
             pipeline=sup_pipeline,
         ),
         unsup=dict(
             type=dataset_type,
-            ann_file="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/trainval_semisparse/trainval_20p/labelunlabel/unlabeled_annotation/",##########
-            img_prefix="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/trainval_semisparse/trainval_20p/labelunlabel/unlabeled_image/",###########
+            ann_file="/root/code/zz/a_data/split_ss_sparse/trainval20/sparselabelunlabel/10/unlabeled_annotation/",##########
+            img_prefix="/root/code/zz/a_data/split_ss_sparse/trainval20/sparselabelunlabel/10/unlabeled_image/",###########
             classes=classes,
             pipeline=unsup_pipeline,
             filter_empty_gt=False,
@@ -205,15 +205,15 @@ data = dict(
     ),
     val=dict(
         type=dataset_type,
-        img_prefix="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/trainval/images/",
-        ann_file="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/trainval/annfiles/",
+        img_prefix="/root/code/zz/a_data/split_ss_sparse/trainval20/labelunlabel/labeled_image/",
+        ann_file="/root/code/zz/a_data/split_ss_sparse/trainval20/labelunlabel/labeled_annotation/",
         classes=classes,
         pipeline=test_pipeline
     ),
     test=dict(
         type=dataset_type,
-        img_prefix="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/test/images/",
-        ann_file="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/test/images/",
+        img_prefix="/root/code/zz/a_data/split_ss_sparse/trainval20/labelunlabel/labeled_image/",
+        ann_file="/root/code/zz/a_data/split_ss_sparse/trainval20/labelunlabel/labeled_annotation/",
         classes=classes,
         pipeline=test_pipeline,
     ),
