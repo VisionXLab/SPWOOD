@@ -264,9 +264,9 @@ class SemiMixHead1(RotatedAnchorFreeHead):
             bbox_pred = bbox_pred.exp()
 
         angle_pred = self.conv_angle(reg_feat)
-        if get_data:
-            angle_pred = \
-            self.angle_coder.decode(angle_pred.reshape(-1, self.angle_coder.encode_size)).reshape(2, 1, angle_pred.shape[2], angle_pred.shape[3])
+        # if get_data:
+        #     angle_pred = \
+        #     self.angle_coder.decode(angle_pred.reshape(-1, self.angle_coder.encode_size)).reshape(angle_pred.shape[0], 1, angle_pred.shape[2], angle_pred.shape[3])
         # if self.is_scale_angle:
         #    angle_pred = self.scale_angle(angle_pred).float()
         return cls_score, bbox_pred, angle_pred, centerness
