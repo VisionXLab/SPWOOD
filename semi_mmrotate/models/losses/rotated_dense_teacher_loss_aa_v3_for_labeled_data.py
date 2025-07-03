@@ -80,14 +80,11 @@ class RotatedDTLossAssignerAssistentV3forLabeledData(nn.Module):
         batch_gt_instances = []
         batch_gt_instance = {}
         for i in range(len(img_metas['img'])):
-            batch_gt_instance['bboxes'] = img_metas['gt_bboxes'][i]
-            batch_gt_instance['labels'] = img_metas['gt_labels'][i]
-            batch_gt_instance['bids'] = torch.randn(1, 4).to('cuda')
-            batch_gt_instances.append(batch_gt_instance)
-        if not batch_gt_instances:
-            batch_gt_instance['bboxes'] = torch.empty(0, 5).to('cuda')
-            batch_gt_instance['labels'] = torch.empty(0, 2).to('cuda')
-            batch_gt_instance['bids'] = torch.empty(0, 4).to('cuda')
+            batch_gt_instance['bboxes'] = img_metas['gt_bboxes'][i].to(img_metas['gt_bboxes'][i].device)
+            original_labels = img_metas['gt_labels'][i]
+            batch_gt_instance['labels'] \
+                 = torch.stack((original_labels, torch.ones_like(original_labels)), dim=1).to(img_metas['gt_labels'][i].device)
+            batch_gt_instance['bids'] = torch.zeros(len(img_metas['gt_labels'][0]), 4).to(img_metas['gt_labels'][i].device)
             batch_gt_instances.append(batch_gt_instance)
         
         labels, bbox_targets, angle_targets, _, _ = bbox_head.get_targets(
@@ -95,6 +92,8 @@ class RotatedDTLossAssignerAssistentV3forLabeledData(nn.Module):
         
         
         flatten_labels = torch.cat(labels) # torch.Size([21824])
+        flatten_labels = flatten_labels[:, 0]
+        
         bg_class_ind = len(CLASSES) # 15 表示背景
         pos_inds = ((flatten_labels >= 0)
                     & (flatten_labels < bg_class_ind)).nonzero().reshape(-1) 
@@ -243,13 +242,6 @@ def QFLv2(selected_inds,pred_sigmoid,
     loss = F.binary_cross_entropy(
         pred_sigmoid, zerolabel, reduction='none') * pt.pow(beta) 
     pos = weight > 0
-    print("重要依据label", len(selected_inds),'--',pos.sum())
-
-    with open('/mnt/nas-new/home/zhanggefan/zw/mcl/result_rph/debug_txt/label.txt', "w") as file:
-        # 写入 batch_inputs_all[0][0] 的形状
-        file.write(f"pos : {pos.sum().cpu().numpy()}\n")
-        # 写入 batch_inputs_all[0][0] 的内容
-        file.write(f"pos : {pos.cpu().numpy()}\n")
 
     # positive goes to bbox quality 覆盖正样本的权值
     pt = teacher_sigmoid[pos] - pred_sigmoid[pos]
