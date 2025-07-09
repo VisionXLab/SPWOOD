@@ -7,3 +7,5 @@ from .point2rboxv2_loss import GaussianOverlapLoss, GaussianVoronoiLoss, EdgeLos
 from .mcl_loss5 import Semi_GmmLoss
 from .rotated_dense_teacher_loss_aa_v3 import RotatedDTLossAssignerAssistentV3
 from .rotated_dense_teacher_loss_aa_v3_for_labeled_data import RotatedDTLossAssignerAssistentV3forLabeledData
+
+from .Attention_Distill_Loss import AttentionDistillLoss
