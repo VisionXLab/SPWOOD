@@ -88,18 +88,18 @@ detector = dict(
 model = dict(
     type="MCLTeacher1",
     model=detector,
-    # semi_loss=dict(type='Semi_GmmLoss', cls_channels=16),
-    semi_loss_unsup=dict(
-        type='RotatedDTLossAssignerAssistentV3', 
-        loss_type='origin', 
-        bbox_loss_type='l1',
-        image_class_prompt_path= '/root/code/zz/RSST-main/RSST/Assinger_Assistent/image_class_prompt_from_chat.pt'),
-    # semi_loss_unsup=dict(type='Semi_GmmLoss', cls_channels=15),
+    # semi_loss=dict(type='Semi_GmmLoss', cls_channels=15),
+    semi_loss_unsup=dict(type='Semi_GmmLoss', cls_channels=15),
+    # semi_loss_unsup=dict(
+    #     type='RotatedDTLossAssignerAssistentV3', 
+    #     loss_type='origin', 
+    #     bbox_loss_type='l1',
+    #     image_class_prompt_path= '/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/image_class_prompt_from_chat.pt'),
     semi_loss_sup=dict(
         type='RotatedDTLossAssignerAssistentV3forLabeledData', 
         loss_type='origin', 
         bbox_loss_type='l1',
-        image_class_prompt_path='/root/code/zz/RSST-main/RSST/Assinger_Assistent/image_class_prompt_from_chat_with_percent10_label_modified.pt'),
+        image_class_prompt_path='/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/image_class_prompt_from_chat_with_percent10_label_modified.pt'),
     train_cfg=dict(
         iter_count=0,
         burn_in_steps=12800,
@@ -140,8 +140,8 @@ strong_pipeline_unlabeled = [
 weak_pipeline_unlabeled = [
     # dict(type='LoadImageFromFile'),
     # dict(type='LoadAnnotations', with_bbox=True),
-    # dict(type='RResize', img_scale=(1024, 1024)),
-    dict(type='RResize', img_scale=(1024, 1024), ratio_range=(0.5, 1.5)),
+    dict(type='RResize', img_scale=(1024, 1024)),
+    # dict(type='RResize', img_scale=(1024, 1024), ratio_range=(0.5, 1.5)),
     dict(
         type='RRandomFlip',
         flip_ratio=[0.25, 0.25, 0.25],
@@ -171,8 +171,8 @@ strong_pipeline_labeled = [
 weak_pipeline_labeled = [
     # dict(type='LoadImageFromFile'),
     # dict(type='LoadAnnotations', with_bbox=True),
-    # dict(type='RResize', img_scale=(1024, 1024)),
-    dict(type='RResize', img_scale=(1024, 1024), ratio_range=(0.5, 1.5)),
+    dict(type='RResize', img_scale=(1024, 1024)),
+    # dict(type='RResize', img_scale=(1024, 1024), ratio_range=(0.5, 1.5)),
     dict(
         type='RRandomFlip',
         flip_ratio=[0.25, 0.25, 0.25],
@@ -242,23 +242,23 @@ data = dict(
         type="SparseDataset",
         sup=dict(
             type=dataset_type,
-            ann_file="/root/code/zz/a_data/split_ss_sparse/trainval20/sparselabelunlabel/10/labeled_annotation",
-            img_prefix="/root/code/zz/a_data/split_ss_sparse/trainval20/sparselabelunlabel/10/labeled_image",
+            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_semisparse/trainval_20p/sparselabelunlabel/10/labeled_annotation",
+            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_semisparse/trainval_20p/sparselabelunlabel/10/labeled_image",
             classes=classes,
             pipeline=sup_pipeline,
         ),
         unsup_unlabeled=dict(
             type=dataset_type,
-            ann_file="/root/code/zz/a_data/split_ss_sparse/trainval20/sparselabelunlabel/10/unlabeled_annotation",
-            img_prefix="/root/code/zz/a_data/split_ss_sparse/trainval20/sparselabelunlabel/10/unlabeled_image",
+            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_semisparse/trainval_20p/sparselabelunlabel/10/unlabeled_annotation",
+            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_semisparse/trainval_20p/sparselabelunlabel/10/unlabeled_image",
             classes=classes,
             pipeline=unsup_pipeline_unlabeled,
             filter_empty_gt=False,
         ),
         unsup_labeled=dict(
             type=dataset_type,
-            ann_file="/root/code/zz/a_data/split_ss_sparse/trainval20/sparselabelunlabel/10/labeled_annotation",
-            img_prefix="/root/code/zz/a_data/split_ss_sparse/trainval20/sparselabelunlabel/10/labeled_image",
+            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_semisparse/trainval_20p/sparselabelunlabel/10/labeled_annotation",
+            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_semisparse/trainval_20p/sparselabelunlabel/10/labeled_image",
             classes=classes,
             pipeline=unsup_pipeline_labeled,
             filter_empty_gt=False,
@@ -266,15 +266,15 @@ data = dict(
     ),
     val=dict(
         type=dataset_type,
-        img_prefix="/root/code/zz/a_data/split_ss_sparse/trainval20/labelunlabel/labeled_image",
-        ann_file='/root/code/zz/a_data/split_ss_sparse/trainval20/labelunlabel/labeled_annotation',
+        img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/split_ss_dota/trainval/images",
+        ann_file='/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/split_ss_dota/trainval/annfiles',
         classes=classes,
         pipeline=test_pipeline
     ),
     test=dict(
         type=dataset_type,
-        img_prefix="/root/code/zz/a_data/split_ss_sparse/trainval20/sparselabelunlabel/10/labeled_image",
-        ann_file='/root/code/zz/a_data/split_ss_sparse/trainval20/sparselabelunlabel/10/labeled_image',
+        img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/split_ss_dota/test/images",
+        ann_file='/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/split_ss_dota/test/images',
         classes=classes,
         pipeline=test_pipeline,
     ),
