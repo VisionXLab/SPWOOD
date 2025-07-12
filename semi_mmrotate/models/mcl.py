@@ -95,7 +95,11 @@ class MCLTeacher(RotatedSemiDetector):
             # get student data
             student_logits = self.student.forward_train(get_data=True, **format_data['unsup_strong'])
             unsup_losses = self.semi_loss(teacher_logits, student_logits, img_metas=format_data['unsup_weak'], alone_angle=True)
-
+            # T：元组(列表1，列表2，列表3，列表4)
+            # 列表1[tensor[2,15,128,128],tensor[2,15,64,64],tensor[2,15,32,32],tensor[2,15,16,16],tensor[2,15,8,8]]
+            # 列表2[tensor[2,4,128,128], tensor[2,4,64,64], tensor[2,4,32,32], tensor[2,4,16,16], tensor[2,4,8,8]]
+            # 列表3[tensor[2,3,128,128], tensor[2,3,64,64], tensor[2,3,32,32], tensor[2,3,16,16], tensor[2,3,8,8]]
+            # 列表4[tensor[2,1,128,128], tensor[2,1,64,64], tensor[2,1,32,32], tensor[2,1,16,16], tensor[2,1,8,8]]
             for key, val in self.logit_specific_weights.items():
                 if key in unsup_losses.keys():
                     unsup_losses[key] *= val
