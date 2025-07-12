@@ -165,6 +165,8 @@ class RotatedDTLossAssignerAssistentV3forLabeledData(nn.Module):
             # 去重
             selected_inds = torch.cat([pos_inds, prompt_inds, overall_inds, class_topk_inds])
             selected_inds = torch.unique(selected_inds)  # 去除重复
+            
+            selected_inds = selected_inds.to(torch.long)
 
             # # 合并 prompt_inds, overall_inds, class_topk_inds 并去重
             # selected_inds = torch.unique(torch.cat([prompt_inds, overall_inds, class_topk_inds]))
