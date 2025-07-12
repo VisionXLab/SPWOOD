@@ -141,6 +141,8 @@ class RotatedDTLossAssignerAssistentV3(nn.Module):
             # 去重 这里
             selected_inds = torch.cat([prompt_inds, overall_inds, class_topk_inds])
             selected_inds = torch.unique(selected_inds)  # 去除重复
+            
+            selected_inds = selected_inds.to(torch.long)
 
             # ------------------------------------
             # 初始化掩码并标记正样本
