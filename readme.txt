@@ -1,9 +1,25 @@
-cd /mnt/nas-new/home/zhanggefan/zw/mcl
-conda activate zw_mcl
+cd /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl
+conda activate zw_mr
 
 CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --nnodes=1 \
---node_rank=0 --master_addr="127.0.0.1" --nproc_per_node=2 --master_port=25510 \
-train.py /mnt/nas-new/home/zhanggefan/zw/mcl/configs_dota15/mcl/30p.py --launcher pytorch --work-dir zz_result/mcl/
+--node_rank=0 --master_addr="127.0.0.1" --nproc_per_node=2 --master_port=25500 \
+train.py configs_dota15/mcl/12510.py \
+ --launcher pytorch --work-dir zw_result/unsuploss_12800
+
+
+ 
+nohup bash -c 'CUDA_VISIBLE_DEVICES=0,1 \
+python -m torch.distributed.launch \
+    --nnodes=1 \
+    --node_rank=0 \
+    --master_addr="127.0.0.1" \
+    --nproc_per_node=2 \
+    --master_port=25510 \
+    train.py configs_dota15/mcl/12510.py \
+    --launcher pytorch \
+    --work-dir zw_result/unsuploss_6400' \
+> train_6400.log 2>&1 &
+
 
 
 CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --nnodes=1 \
