@@ -126,7 +126,7 @@ class Semi_GmmLoss(nn.Module):
 
         return pos_thr
 
-
+    # t_logits_list：[ten1[21824, 15], ten2[21824, 5], ten3[21824, 1]]
     def loss_single(self, t_logits_list, s_logits_list, level_inds):
         t_cls_scores, t_bbox_preds, t_centernesses = tuple(t_logits_list)
         s_cls_scores, s_bbox_preds, s_centernesses = tuple(s_logits_list)
@@ -154,26 +154,26 @@ class Semi_GmmLoss(nn.Module):
             confidences_rest = teacher_probs[level_inds[1]:]
             selected_inds_rest = torch.arange(level_inds[1], teacher_probs.shape[0]).to(confidences_rest.device)
 
-            # coarse_inds
+            # coarse_inds。  selected_inds_coarse：torch.Size([5344])
             selected_inds_coarse = torch.cat([selected_inds_p3, selected_inds_p4, selected_inds_rest], 0)
             
-            # fine_inds
+            # fine_inds由GMM来的。  all_confidences：torch.Size([21824, 15])
             all_confidences = torch.cat([joint_confidences_p3, joint_confidences_p4, confidences_rest], 0)
-            max_vals = torch.max(all_confidences, 1)[0]
+            max_vals = torch.max(all_confidences, 1)[0]   # max_vals.shape torch.Size([21824])
             self.mean_score = max_vals.mean()
             thres = self.gmm_policy(max_vals, policy = self.policy)
             self.thres = thres
             selected_inds = torch.nonzero(max_vals >thres).squeeze(-1)
 
             selected_inds, counts = torch.cat([selected_inds_coarse, selected_inds], 0).unique(return_counts=True)
-            selected_inds = selected_inds[counts>1]
+            selected_inds = selected_inds[counts>1]   # 这是在coarse和fine两种情况都出现的inds
 
             weight_mask = torch.zeros_like(max_vals)
             weight_mask[selected_inds] = max_vals[selected_inds]
-            b_mask = weight_mask > 0.
+            b_mask = weight_mask > 0.   # 在coarse和fine里面都出现过的inds
 
         if b_mask.sum() == 0:
-            loss_cls = QFLv2(
+            loss_cls = QFLv2(   # 3个变量的维度相同
                 s_cls_scores.sigmoid(),
                 teacher_probs,
                 weight=max_vals,
@@ -203,10 +203,10 @@ class Semi_GmmLoss(nn.Module):
         return loss_cls, loss_bbox, loss_centerness
 
     def forward(self, teacher_logits, student_logits, img_metas=None, alone_angle=True):
-
+        # 在pre_processing中处理模型生成结果，
         img_t_logits_list = self.pre_processing(teacher_logits, alone_angle)
         img_s_logits_list = self.pre_processing(student_logits, alone_angle)
-
+        # T:list[list1, list2]。list1:list[tensor1[21824, 15], tensor2[21824, 5], tensor3[21824, 1]]。list2:list[tensor1[21824, 15], tensor2[21824, 5], tensor3[21824, 1]]
         featmap_sizes = [featmap.size()[-2:] for featmap in teacher_logits[0]]
         level_inds = []
         start = 0
@@ -215,7 +215,7 @@ class Semi_GmmLoss(nn.Module):
             level_inds.append(start)
         level_inds = level_inds[:2]
 
-        # get labels and bbox_targets of each image
+        # get labels and bbox_targets of each image 每张图片单独处理
         losses_list = multi_apply(
                             self.loss_single,
                             img_t_logits_list,
