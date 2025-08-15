@@ -35,10 +35,10 @@ def py_sparse_sigmoid_focal_loss(pred,
     Returns:
         torch.Tensor: Calculated loss value.
     """
-    pred_sigmoid = pred.sigmoid()
+    pred_sigmoid = pred.sigmoid()  # 计算概率
     target = target.type_as(pred)
     
-    # Calculate px (1 - pt), where pt is the probability of correct classification
+    # Calculate px (1 - pt), where pt is the probability of correct classification 这里的px恒等于正确类别（可能是0、可能是1）的概率
     px = (1 - pred_sigmoid) * target + pred_sigmoid * (1 - target) # px = 1 - pt
 
     focal_weight = (alpha * target + (1 - alpha) * (1 - target)) * px.pow(gamma)
@@ -47,7 +47,7 @@ def py_sparse_sigmoid_focal_loss(pred,
     original_focal_loss = F.binary_cross_entropy_with_logits(pred, target, reduction='none') * focal_weight
     
     # Identify hard negatives (samples with pt < thresh) 这里等同于 p > 1 - thr p表示分类为正样本的概率
-    hard_negatives = ((1 - px) < thresh) & (target == 0)
+    hard_negatives = ((1 - px) < thresh) & (target == 0)  # 难分负样本,是target为0,而且预测值小于阈值的
     
     # Apply positive and hard negative weights
     loss = original_focal_loss.clone()

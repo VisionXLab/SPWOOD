@@ -139,8 +139,8 @@ class Semi_GmmLoss(nn.Module):
             teacher_probs_p3 = teacher_probs[:level_inds[0]]
             teacher_centernesses_p3 = teacher_centernesses[:level_inds[0]]
             joint_confidences_p3 = teacher_probs_p3 * teacher_centernesses_p3
-            max_vals_p3 = torch.max(joint_confidences_p3, 1)[0]
-            selected_inds_p3 = torch.topk(max_vals_p3, joint_confidences_p3.size(0))[1][:2000]
+            max_vals_p3 = torch.max(joint_confidences_p3, 1)[0]  # torch.Size([16384]) 保存的是每行最大值
+            selected_inds_p3 = torch.topk(max_vals_p3, joint_confidences_p3.size(0))[1][:2000]   # 前2000个索引
 
             # P4
             teacher_probs_p4 = teacher_probs[level_inds[0]:level_inds[1]]
@@ -148,10 +148,11 @@ class Semi_GmmLoss(nn.Module):
             joint_confidences_p4 = teacher_probs_p4 * teacher_centernesses_p4
             select_inds_p4 = torch.arange(level_inds[0], level_inds[1]).to(joint_confidences_p4.device)
             max_vals_p4 = torch.max(joint_confidences_p4, 1)[0]
-            selected_inds_p4 = select_inds_p4[torch.topk(max_vals_p4, joint_confidences_p4.size(0))[1][:2000]]
+            selected_inds_p4 = select_inds_p4[torch.topk(max_vals_p4, joint_confidences_p4.size(0))[1][:2000]]    # 前2000个索引
 
             # P5, P6, P7
             confidences_rest = teacher_probs[level_inds[1]:]
+            assert level_inds[1] < teacher_probs.shape[0], f"level_inds[1] ({level_inds[1]}) must be less than teacher_probs.shape[0] ({teacher_probs.shape[0]}). level_inds({level_inds}). teacher_probs({teacher_probs})"
             selected_inds_rest = torch.arange(level_inds[1], teacher_probs.shape[0]).to(confidences_rest.device)
 
             # coarse_inds。  selected_inds_coarse：torch.Size([5344])
@@ -159,7 +160,7 @@ class Semi_GmmLoss(nn.Module):
             
             # fine_inds由GMM来的。  all_confidences：torch.Size([21824, 15])
             all_confidences = torch.cat([joint_confidences_p3, joint_confidences_p4, confidences_rest], 0)
-            max_vals = torch.max(all_confidences, 1)[0]   # max_vals.shape torch.Size([21824])
+            max_vals = torch.max(all_confidences, 1)[0]   # max_vals.shape torch.Size([21824])   # 每行最大值
             self.mean_score = max_vals.mean()
             thres = self.gmm_policy(max_vals, policy = self.policy)
             self.thres = thres
@@ -167,10 +168,10 @@ class Semi_GmmLoss(nn.Module):
 
             selected_inds, counts = torch.cat([selected_inds_coarse, selected_inds], 0).unique(return_counts=True)
             selected_inds = selected_inds[counts>1]   # 这是在coarse和fine两种情况都出现的inds
-
+            # 至此得到了所有选择的inds
             weight_mask = torch.zeros_like(max_vals)
             weight_mask[selected_inds] = max_vals[selected_inds]
-            b_mask = weight_mask > 0.   # 在coarse和fine里面都出现过的inds
+            b_mask = weight_mask > 0.   # 在coarse和fine里面都出现过的inds. 而且要求预测结果大于0
 
         if b_mask.sum() == 0:
             loss_cls = QFLv2(   # 3个变量的维度相同
@@ -213,9 +214,9 @@ class Semi_GmmLoss(nn.Module):
         for size in featmap_sizes:
             start = start + size[0] * size[0]
             level_inds.append(start)
-        level_inds = level_inds[:2]
+        level_inds = level_inds[:2]   # [16384, 20480]
 
-        # get labels and bbox_targets of each image 每张图片单独处理
+        # get labels and bbox_targets of each image 每张图片单独处理,并且处理的inds不一样. 对于每张图片,从教师的预测中选取伪标签
         losses_list = multi_apply(
                             self.loss_single,
                             img_t_logits_list,
@@ -223,7 +224,7 @@ class Semi_GmmLoss(nn.Module):
                             level_inds=level_inds)
 
         unsup_losses = dict(
-            loss_cls=sum(losses_list[0]) / len(losses_list[0]),
+            loss_cls=sum(losses_list[0]) / len(losses_list[0]),   # 除以图片的数量,计算平均loss
             loss_bbox=sum(losses_list[1]) / len(losses_list[1]),
             loss_centerness=sum(losses_list[2]) / len(losses_list[2])
         )

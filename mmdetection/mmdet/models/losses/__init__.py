@@ -24,6 +24,9 @@ from .sparse_focal_loss import SparseFocalLoss
 from .sparse_focal_loss_v2 import SparseFocalLossV2
 from .sparse_focal_loss_visual import SparseFocalLossVisual
 
+from .sparse_focal_loss_gmm import SparseFocalLossGMM
+
+
 __all__ = [
     'accuracy', 'Accuracy', 'cross_entropy', 'binary_cross_entropy',
     'mask_cross_entropy', 'CrossEntropyLoss', 'sigmoid_focal_loss',

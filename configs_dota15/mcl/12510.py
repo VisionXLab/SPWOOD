@@ -88,18 +88,29 @@ detector = dict(
 model = dict(
     type="MCLTeacher1",
     model=detector,
-    # semi_loss=dict(type='Semi_GmmLoss', cls_channels=15),
-    semi_loss_unsup=dict(type='Semi_GmmLoss', cls_channels=15),
+    # semi_loss_unsup=dict(type='Semi_GmmLoss', cls_channels=15),
     # semi_loss_unsup=dict(
-    #     type='RotatedDTLossAssignerAssistentV3', 
+    #     type='RotatedDTLossAssignerAssistentV3Merge', 
     #     loss_type='origin', 
     #     bbox_loss_type='l1',
-    #     image_class_prompt_path= '/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/image_class_prompt_from_chat.pt'),
-    semi_loss_sup=dict(
-        type='RotatedDTLossAssignerAssistentV3forLabeledData', 
+    #     image_class_prompt_path= '/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/image_class_prompt.pt'),
+    # semi_loss_sup=dict(
+    #     type='RotatedDTLossAssignerAssistentV3forLabeledDataReply', 
+        # type='RotatedDTLossAssignerAssistentV3forLabeledData', 
+        # loss_type='origin', 
+        # bbox_loss_type='l1',
+        # image_class_prompt_path='/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/image_class_prompt_30_10.pt'),
+    
+    semi_loss_unsup=dict(
+        type='Semi_GmmLoss9', 
         loss_type='origin', 
         bbox_loss_type='l1',
-        image_class_prompt_path='/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/image_class_prompt_from_chat_with_percent10_label_modified.pt'),
+        image_class_prompt_path= '/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/image_class_prompt.pt'),
+    semi_loss_sup=dict(
+        type='Semi_GmmLossforLabeledData9', 
+        loss_type='origin', 
+        bbox_loss_type='l1',
+        image_class_prompt_path='/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/image_class_prompt_30_10.pt'),
     train_cfg=dict(
         iter_count=0,
         burn_in_steps=12800,
@@ -140,8 +151,8 @@ strong_pipeline_unlabeled = [
 weak_pipeline_unlabeled = [
     # dict(type='LoadImageFromFile'),
     # dict(type='LoadAnnotations', with_bbox=True),
-    dict(type='RResize', img_scale=(1024, 1024)),
-    # dict(type='RResize', img_scale=(1024, 1024), ratio_range=(0.5, 1.5)),
+    # dict(type='RResize', img_scale=(1024, 1024)),
+    dict(type='RResize', img_scale=(1024, 1024), ratio_range=(0.5, 1.5)),
     dict(
         type='RRandomFlip',
         flip_ratio=[0.25, 0.25, 0.25],
@@ -171,8 +182,8 @@ strong_pipeline_labeled = [
 weak_pipeline_labeled = [
     # dict(type='LoadImageFromFile'),
     # dict(type='LoadAnnotations', with_bbox=True),
-    dict(type='RResize', img_scale=(1024, 1024)),
-    # dict(type='RResize', img_scale=(1024, 1024), ratio_range=(0.5, 1.5)),
+    # dict(type='RResize', img_scale=(1024, 1024)),
+    dict(type='RResize', img_scale=(1024, 1024), ratio_range=(0.5, 1.5)),
     dict(
         type='RRandomFlip',
         flip_ratio=[0.25, 0.25, 0.25],
@@ -242,23 +253,23 @@ data = dict(
         type="SparseDataset",
         sup=dict(
             type=dataset_type,
-            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_semisparse/trainval_20p/sparselabelunlabel/10/labeled_annotation",
-            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_semisparse/trainval_20p/sparselabelunlabel/10/labeled_image",
+            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/30/semisparse/10/label_annotation",
+            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/30/semisparse/10/label_image",
             classes=classes,
             pipeline=sup_pipeline,
         ),
         unsup_unlabeled=dict(
             type=dataset_type,
-            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_semisparse/trainval_20p/sparselabelunlabel/10/unlabeled_annotation",
-            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_semisparse/trainval_20p/sparselabelunlabel/10/unlabeled_image",
+            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/30/semisparse/10/unlabel_annotation",
+            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/30/semisparse/10/unlabel_image",
             classes=classes,
             pipeline=unsup_pipeline_unlabeled,
             filter_empty_gt=False,
         ),
         unsup_labeled=dict(
             type=dataset_type,
-            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_semisparse/trainval_20p/sparselabelunlabel/10/labeled_annotation",
-            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_semisparse/trainval_20p/sparselabelunlabel/10/labeled_image",
+            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/30/semisparse/10/label_annotation",
+            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/30/semisparse/10/label_image",
             classes=classes,
             pipeline=unsup_pipeline_labeled,
             filter_empty_gt=False,

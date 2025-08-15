@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import torch
 import torch.nn.functional as F
+import torch.nn as nn
 from torch.nn.functional import grid_sample
 
 from mmrotate.models.builder import ROTATED_DETECTORS
@@ -243,31 +244,34 @@ class SemiMix1(RotatedSingleStageDetector):
                 self.bbox_head.edges = batch_edges[3].clamp(0)
                 # cv2.imwrite('E.png', batch_edges[0].cpu().numpy() * 255)
         
-        # 为了rsst的loss新加
-        if rsst_flag:
-            batch_inputs_all = img
-            feat = self.extract_feat(batch_inputs_all)
-            cls_score, bbox_pred, angle_pred, centerness = self.bbox_head.forward(feat, get_data)
-            return (cls_score, bbox_pred, angle_pred, centerness)
+        # # 为了rsst针对单张图片的loss新加  可以舍弃了,因为数据增强的效果肯定比单张图片要好
+        # if rsst_flag:
+        #     batch_inputs_all = img
+        #     feat = self.extract_feat(batch_inputs_all)
+        #     cls_score, bbox_pred, angle_pred, centerness = self.bbox_head.forward(feat, get_data)
+        #     return (cls_score, bbox_pred, angle_pred, centerness)
 
         batch_inputs_all = torch.cat((img, img_aug))
         batch_data_samples_all = []
         for gt_instances, img_metas in zip(batch_gt_instances + batch_gt_aug, img_metas + img_metas):
             data_sample = {'metainfo': img_metas, 'gt_instances': gt_instances}
             batch_data_samples_all.append(data_sample)
-        
-        feat = self.extract_feat(batch_inputs_all)  #feat [4, 256, 176, 176][4, 256, 88, 88][4, 256, 44, 44][4, 256, 22, 22][4, 256, 11, 11]
-
+        # 有监督,batch_inputs_all:torch.Size([4, 3, 1024, 1024])
+        feat = self.extract_feat(batch_inputs_all)  #feat [4, 256, 128, 128][4, 256, 64, 64][4, 256, 32, 32][4, 256, 16, 16][4, 256, 8, 8]
+        # cls_score:list[torch.Size([4, 15, 128, 128]), .......]
         cls_score, bbox_pred, angle_pred, centerness = self.bbox_head.forward(feat, get_data)
-
-        if get_data:   # 这是在无监督的时候使用
-            
-            return (cls_score, bbox_pred, angle_pred, centerness)
         
         # batch_gt_instances = [data_sample['gt_instances'] for data_sample in batch_data_samples_all]
         batch_gt_instances = [copy.deepcopy(data_sample['gt_instances']) for data_sample in batch_data_samples_all]
         batch_img_metas = [data_sample['metainfo'] for data_sample in batch_data_samples_all]
+          
+        if rsst_flag:  # label无监督需要返回GT
+            return (cls_score, bbox_pred, angle_pred, centerness, batch_gt_instances)
+
+        if get_data:   # unlabel无监督时候使用的是使用img得到的feat得到的预测结果.和GT没有关系
+            return (cls_score, bbox_pred, angle_pred, centerness)
         
+        # 这里使用所有图片的FPN第一层的结果
         results_list = self.bbox_head.get_bboxes((cls_score[0],), 
                                                  (bbox_pred[0],), 
                                                  (angle_pred[0],),

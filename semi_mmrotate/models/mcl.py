@@ -7,11 +7,10 @@ from mmrotate.models import build_detector
 
 @ROTATED_DETECTORS.register_module()
 class MCLTeacher(RotatedSemiDetector):
-    def __init__(self, model: dict, semi_loss, att_loss, train_cfg=None, test_cfg=None):
+    def __init__(self, model: dict, semi_loss, train_cfg=None, test_cfg=None):
         super(MCLTeacher, self).__init__(
             dict(teacher=build_detector(model), student=build_detector(model)),  # 初始化teacher/student
             semi_loss,
-            att_loss,
             train_cfg=train_cfg,
             test_cfg=test_cfg,
         )
@@ -108,8 +107,6 @@ class MCLTeacher(RotatedSemiDetector):
                     losses[f"{key}_unsup"] = unsup_weight * val
                 else:
                     losses[key] = val
-            
-            # losses["loss_attention_unsup"] = self.att_loss(student_logits, teacher_logits) 
          
         self.iter_count += 1
 

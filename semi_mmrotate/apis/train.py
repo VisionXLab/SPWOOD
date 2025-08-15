@@ -51,7 +51,8 @@ def train_detector(model,
 
     # put model on gpus
     if distributed:
-        find_unused_parameters = cfg.get('find_unused_parameters', False)
+        # find_unused_parameters = cfg.get('find_unused_parameters', False)
+        find_unused_parameters = cfg.get('find_unused_parameters', True)  # 为了res loss而修改
         # Sets the `find_unused_parameters` parameter in
         # torch.nn.parallel.DistributedDataParallel
         model = MMDistributedDataParallel(

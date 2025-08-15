@@ -263,6 +263,7 @@ class DOTADataset(CustomDataset):
             collector[oriname].append(new_result)
 
         merge_func = partial(_merge_func, CLASSES=self.CLASSES, iou_thr=0.1)
+        nproc = 1
         if nproc <= 1:
             print('Executing on Single Processor')
             merged_results = mmcv.track_iter_progress(

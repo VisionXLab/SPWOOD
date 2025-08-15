@@ -108,7 +108,7 @@ class MCLTeacher1(RotatedSemiDetector1):
 
         losses = dict()
         # supervised forward 有监督训练   format_data['sup']的键有 dict_keys(['img', 'img_metas', 'gt_bboxes', 'gt_labels']
-        sup_losses = self.student.forward_train(**format_data['sup'])
+        sup_losses = self.student.forward_train(**format_data['sup'])  
         for key, val in sup_losses.items():
             if key[:4] == 'loss':
                 if isinstance(val, list):
@@ -135,68 +135,27 @@ class MCLTeacher1(RotatedSemiDetector1):
                 if self.iter_count <= target:
                     unsup_weight *= (self.iter_count - self.burn_in_steps) / self.burn_in_steps
 
-
-            # # 全部使用rsst的loss
-            # with torch.no_grad():
-            #     # get teacher data
-            #     teacher_logits_unlabled = self.teacher.forward_train(get_data=True, **format_data['unsup_weak_unlabeled'], rsst_flag = True)
-            #     teacher_logits_labeled = self.teacher.forward_train(get_data=True, **format_data['unsup_weak_labeled'], rsst_flag = True)
-            #     # get student data  [2,5,152,152] [2, 15, 76, 76] [2, 15, 38, 38] [2, 15, 19, 19] 
-            # student_logits_unlabeled = self.student.forward_train(get_data=True,  **format_data['unsup_strong_unlabeled'], rsst_flag = True)
-            # student_logits_labeled = self.student.forward_train(get_data=True, **format_data['unsup_strong_labeled'], rsst_flag = True)
             
-            # for i in range(len(teacher_logits_unlabled[2])):
-            #     decoder = self.teacher.bbox_head.angle_coder
-            #     angle_pred = teacher_logits_unlabled[2][i]
-            #     decoded = decoder.decode(angle_pred[0].permute(1, 2, 0).reshape(-1, decoder.encode_size))
-            #     teacher_logits_unlabled[2][i] = decoded.reshape\
-            #         (angle_pred.shape[0], 1, angle_pred.shape[2], angle_pred.shape[3])
-
-            #     angle_pred = teacher_logits_labeled[2][i]
-            #     decoded = decoder.decode(angle_pred[0].permute(1, 2, 0).reshape(-1, decoder.encode_size))
-            #     teacher_logits_labeled[2][i] = decoded.reshape\
-            #         (angle_pred.shape[0], 1, angle_pred.shape[2], angle_pred.shape[3])
-                
-            #     angle_pred = student_logits_unlabeled[2][i]
-            #     decoded = decoder.decode(angle_pred[0].permute(1, 2, 0).reshape(-1, decoder.encode_size))
-            #     student_logits_unlabeled[2][i] = decoded.reshape\
-            #         (angle_pred.shape[0], 1, angle_pred.shape[2], angle_pred.shape[3])
-                
-            #     angle_pred = student_logits_labeled[2][i]
-            #     decoded = decoder.decode(angle_pred[0].permute(1, 2, 0).reshape(-1, decoder.encode_size))
-            #     student_logits_labeled[2][i] = decoded.reshape\
-            #         (angle_pred.shape[0], 1, angle_pred.shape[2], angle_pred.shape[3])
-                
-            # unsup_losses_unlabeled = self.semi_loss_unsup(teacher_logits_unlabled, student_logits_unlabeled, ratio=self.region_ratio, img_metas=format_data['unsup_weak_unlabeled'])
-            # unsup_losses_labeled = self.semi_loss_sup(teacher_logits_labeled, student_logits_labeled, ratio=self.region_ratio, img_metas=format_data['unsup_weak_labeled'], bbox_head=self.student.bbox_head)
-
-
-            
-            # 使用rsst的label loss和pwood的unlabel loss
+            # unsup部分: 使用rsst的label loss(融合pwood选点策略)和pwood的unlabel loss
             with torch.no_grad():
                 # get teacher data
                 teacher_logits_unlabled = self.teacher.forward_train(get_data=True, **format_data['unsup_weak_unlabeled'])
-                teacher_logits_labeled = self.teacher.forward_train(get_data=True, **format_data['unsup_weak_labeled'], rsst_flag = True)
+                teacher_logits_labeled = self.teacher.forward_train(get_data=True, **format_data['unsup_weak_labeled'], rsst_flag=True)
                 # get student data  [2,5,152,152] [2, 15, 76, 76] [2, 15, 38, 38] [2, 15, 19, 19] 
             student_logits_unlabeled = self.student.forward_train(get_data=True,  **format_data['unsup_strong_unlabeled'])
-            student_logits_labeled = self.student.forward_train(get_data=True, **format_data['unsup_strong_labeled'], rsst_flag = True)
+            student_logits_labeled = self.student.forward_train(get_data=True, **format_data['unsup_strong_labeled'], rsst_flag=True)
+            # NOTE unlabel和label得到的都是两张图片,例2,15,128,128
             
-            for i in range(len(teacher_logits_unlabled[2])):
-                decoder = self.teacher.bbox_head.angle_coder
-
-                angle_pred = teacher_logits_labeled[2][i]
-                decoded = decoder.decode(angle_pred[0].permute(1, 2, 0).reshape(-1, decoder.encode_size))
-                teacher_logits_labeled[2][i] = decoded.reshape\
-                    (angle_pred.shape[0], 1, angle_pred.shape[2], angle_pred.shape[3])
-                
-                angle_pred = student_logits_labeled[2][i]
-                decoded = decoder.decode(angle_pred[0].permute(1, 2, 0).reshape(-1, decoder.encode_size))
-                student_logits_labeled[2][i] = decoded.reshape\
-                    (angle_pred.shape[0], 1, angle_pred.shape[2], angle_pred.shape[3])
-                
-            unsup_losses_unlabeled = self.semi_loss_unsup(teacher_logits_unlabled, student_logits_unlabeled, img_metas=format_data['unsup_weak_unlabeled'], alone_angle=True)
+            # pwood unsup unlabel loss 
+            # unsup_losses_unlabeled = self.semi_loss_unsup(teacher_logits_unlabled, student_logits_unlabeled, img_metas=format_data['unsup_weak_unlabeled'], alone_angle=True)
+            # rsst unsup unlabel loss(融合)
+            # unsup_losses_unlabeled = self.semi_loss_unsup(teacher_logits_unlabled, student_logits_unlabeled, ratio=self.region_ratio, img_metas=format_data['unsup_weak_unlabeled'], bbox_head=self.student.bbox_head)
+            # rsst unsup label loss(融合)
+            # unsup_losses_labeled = self.semi_loss_sup(teacher_logits_labeled, student_logits_labeled, ratio=self.region_ratio, img_metas=format_data['unsup_weak_labeled'], bbox_head=self.student.bbox_head)
+            # NOTE format_data['unsup_weak_labeled']:dict_keys(['img', 'img_metas', 'gt_bboxes', 'gt_labels'])
+            
+            unsup_losses_unlabeled = self.semi_loss_unsup(teacher_logits_unlabled, student_logits_unlabeled, ratio=self.region_ratio, img_metas=format_data['unsup_weak_unlabeled'])
             unsup_losses_labeled = self.semi_loss_sup(teacher_logits_labeled, student_logits_labeled, ratio=self.region_ratio, img_metas=format_data['unsup_weak_labeled'], bbox_head=self.student.bbox_head)
-
 
 
             for key, val in self.logit_specific_weights.items():

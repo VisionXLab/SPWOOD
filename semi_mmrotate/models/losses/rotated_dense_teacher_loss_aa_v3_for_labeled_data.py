@@ -48,7 +48,21 @@ class RotatedDTLossAssignerAssistentV3forLabeledData(nn.Module):
             for filename, exist_classes in self.image_class_prompt.items()
         }
 
-    def convert_shape(self, logits):
+    def convert_shape(self, logits, bbox_head):
+        # 先角度解码
+        for i in range(len(logits[2])):
+            decoder = bbox_head.angle_coder
+
+            angle_pred = logits[2][i]
+            decoded = []
+            for j in range(len(angle_pred)):
+                angle_pred_single = angle_pred[j]
+                decoded_single = decoder.decode(angle_pred_single.permute(1, 2, 0).reshape(-1, decoder.encode_size))
+                decoded_single_result = decoded_single.reshape(1, angle_pred.shape[2], angle_pred.shape[3])
+                decoded.append(decoded_single_result)
+            logits[2][i] = torch.stack(decoded,dim = 0)
+            
+        # 再合并
         cls_scores, bbox_preds, angle_preds, centernesses = logits
         assert len(cls_scores) == len(bbox_preds) == len(angle_preds) == len(centernesses)
 
@@ -66,36 +80,37 @@ class RotatedDTLossAssignerAssistentV3forLabeledData(nn.Module):
         return cls_scores, bbox_preds, centernesses
 
     def forward(self, teacher_logits, student_logits, ratio=0.03, img_metas=None, bbox_head=None, **kwargs):
+        # 这里只使用teacher的数据增强结果,用于筛选teacher的预测结果
+        batch_gt_instances_from_teacher = teacher_logits[4]
+        
         # (21824, 15)  (21824, 5)  (21824, 1)
-        t_cls_scores, t_bbox_preds, t_centernesses = self.convert_shape(teacher_logits)
-        s_cls_scores, s_bbox_preds, s_centernesses = self.convert_shape(student_logits)
-        gt_bboxes = img_metas['gt_bboxes']
-        gt_labels = img_metas['gt_labels']
+        t_cls_scores, t_bbox_preds, t_centernesses = self.convert_shape(teacher_logits[:4], bbox_head)
+        s_cls_scores, s_bbox_preds, s_centernesses = self.convert_shape(student_logits[:4], bbox_head)
+        # gt_bboxes = img_metas['gt_bboxes']
+        # gt_labels = img_metas['gt_labels']
 
         all_level_points = self.prior_generator.grid_priors(
             [featmap.size()[-2:] for featmap in teacher_logits[0]],
             dtype=s_bbox_preds.dtype,
             device=s_bbox_preds.device)
 
-        batch_gt_instances = []
-        batch_gt_instance = {}
-        for i in range(len(img_metas['img'])):
-            batch_gt_instance['bboxes'] = img_metas['gt_bboxes'][i].to(img_metas['gt_bboxes'][i].device)
-            original_labels = img_metas['gt_labels'][i]
-            batch_gt_instance['labels'] \
-                 = torch.stack((original_labels, torch.ones_like(original_labels)), dim=1).to(img_metas['gt_labels'][i].device)
-            batch_gt_instance['bids'] = torch.zeros(len(img_metas['gt_labels'][0]), 4).to(img_metas['gt_labels'][i].device)
-            batch_gt_instances.append(batch_gt_instance)
+        # batch_gt_instances = []
+        # batch_gt_instance = {}
+        # for i in range(len(img_metas['img'])):
+        #     batch_gt_instance['bboxes'] = img_metas['gt_bboxes'][i].to(img_metas['gt_bboxes'][i].device)
+        #     original_labels = img_metas['gt_labels'][i]
+        #     batch_gt_instance['labels'] \
+        #          = torch.stack((original_labels, torch.ones_like(original_labels)), dim=1).to(img_metas['gt_labels'][i].device)
+        #     batch_gt_instance['bids'] = torch.zeros(len(img_metas['gt_labels'][0]), 4).to(img_metas['gt_labels'][i].device)
+        #     batch_gt_instances.append(batch_gt_instance)
         
-        labels, bbox_targets, angle_targets, _, _ = bbox_head.get_targets(
-            all_level_points, batch_gt_instances, bbox_head.strides)
-        
+        labels, bbox_targets, angle_targets, _, _ = bbox_head.get_targets( all_level_points, batch_gt_instances_from_teacher, bbox_head.strides)
         
         flatten_labels = torch.cat(labels) # torch.Size([21824])
-        flatten_labels = flatten_labels[:, 0]
+        # flatten_labels = flatten_labels[:, 0]
         
         bg_class_ind = len(CLASSES) # 15 表示背景
-        pos_inds = ((flatten_labels >= 0)
+        pos_inds = ((flatten_labels >= 0)   # 第一个inds从预测结果来的
                     & (flatten_labels < bg_class_ind)).nonzero().reshape(-1) 
         #------------------------------Assigner Assistant Start---------------------------------------
         with torch.no_grad():
@@ -153,7 +168,7 @@ class RotatedDTLossAssignerAssistentV3forLabeledData(nn.Module):
             for cls in non_prompt_classes:
                 cls_mask = (max_inds == cls)
                 cls_vals = max_vals[cls_mask]
-                cls_inds = torch.where(cls_mask)[0]
+                cls_inds = torch.where(cls_mask)[0]   # 选取为true的位置
 
                 if len(cls_inds) > class_topk_count:
                     sorted_vals, sorted_inds = torch.topk(cls_vals, class_topk_count)
@@ -188,7 +203,7 @@ class RotatedDTLossAssignerAssistentV3forLabeledData(nn.Module):
 
         #------------------------------Assigner Assistant End-----------------------------------------
 
-        loss_cls = QFLv2(selected_inds,
+        loss_cls = QFLv2(
             s_cls_scores.sigmoid(),
             t_cls_scores.sigmoid(),
             weight=mask,
@@ -233,7 +248,7 @@ class RotatedDTLossAssignerAssistentV3forLabeledData(nn.Module):
         return unsup_losses
 
 
-def QFLv2(selected_inds,pred_sigmoid,
+def QFLv2(pred_sigmoid,
           teacher_sigmoid,
           weight=None,
           beta=2.0,

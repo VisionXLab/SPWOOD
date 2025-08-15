@@ -82,7 +82,6 @@ model = dict(
     type="MCLTeacher",
     model=detector,
     semi_loss=dict(type='Semi_GmmLoss', cls_channels=15),
-    att_loss=dict(type='AttentionDistillLoss'),
     train_cfg=dict(
         iter_count=0,
         burn_in_steps=12800,
@@ -190,15 +189,15 @@ data = dict(
         type="SemiDataset",
         sup=dict(
             type=dataset_type,
-            ann_file="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/train_semisparse/train_30p/labelunlabel/labeled/annfiles/",##########
-            img_prefix="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/train_semisparse/train_30p/labelunlabel/labeled/images/",##########
+            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/RSST/10/labeled_annotation/",##########
+            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/RSST/10/labeled_image/",##########
             classes=classes,
             pipeline=sup_pipeline,
         ),
         unsup=dict(
             type=dataset_type,
-            ann_file="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/train_semisparse/train_30p/labelunlabel/unlabeled/annfiles/",##########
-            img_prefix="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/train_semisparse/train_30p/labelunlabel/unlabeled/images/",###########
+            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/RSST/10/unlabeled_annotation/",##########
+            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/RSST/10/unlabeled_image/",###########
             classes=classes,
             pipeline=unsup_pipeline,
             filter_empty_gt=False,
@@ -206,15 +205,15 @@ data = dict(
     ),
     val=dict(
         type=dataset_type,
-        img_prefix="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/val/images/",
-        ann_file="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/val/annfiles/",
+        img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/split_ss_dota/trainval/images/",
+        ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/split_ss_dota/trainval/annfiles/",
         classes=classes,
         pipeline=test_pipeline
     ),
     test=dict(
         type=dataset_type,
-        img_prefix="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/trainval/images/",
-        ann_file="/mnt/nas-new/home/zhanggefan/zw/A_datasets/DOTA/DOTA10/DOTA_split_ss/trainval/annfiles/",
+        img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/split_ss_dota/test/images/",
+        ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/split_ss_dota/test/images/",
         classes=classes,
         pipeline=test_pipeline,
     ),
@@ -289,6 +288,6 @@ opencv_num_threads = 0
 # set multi-process start method as `fork` to speed up the training
 mp_start_method = 'fork'
 
-# custom_imports = dict(
-#     imports=['semi_mmrotate'],
-#     allow_failed_imports=False)
+custom_imports = dict(
+    imports=['semi_mmrotate'],
+    allow_failed_imports=False)

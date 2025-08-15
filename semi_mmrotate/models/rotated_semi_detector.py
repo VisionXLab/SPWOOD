@@ -8,15 +8,13 @@ from mmrotate.models import ROTATED_DETECTORS, RotatedBaseDetector, build_loss
 
 @ROTATED_DETECTORS.register_module()
 class RotatedSemiDetector(RotatedBaseDetector):
-    def __init__(self, model: dict, semi_loss=None, att_loss=None, train_cfg=None, test_cfg=None):
+    def __init__(self, model: dict, semi_loss=None, train_cfg=None, test_cfg=None):
         super(RotatedSemiDetector, self).__init__()
         self.submodules = list(model.keys())
         for k, v in model.items():
             setattr(self, k, v)
         if semi_loss is not None:
             self.semi_loss = build_loss(semi_loss)
-        if att_loss is not None:
-            self.att_loss = build_loss(att_loss)
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
         self.inference_on = self.test_cfg.get("inference_on", self.submodules[0])
