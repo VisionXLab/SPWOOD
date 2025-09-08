@@ -24,7 +24,7 @@ from .sparse_focal_loss import SparseFocalLoss
 from .sparse_focal_loss_v2 import SparseFocalLossV2
 from .sparse_focal_loss_visual import SparseFocalLossVisual
 
-from .sparse_focal_loss_gmm import SparseFocalLossGMM
+from .sparse_focal_loss_pg import SparseFocalLossPg
 
 
 __all__ = [

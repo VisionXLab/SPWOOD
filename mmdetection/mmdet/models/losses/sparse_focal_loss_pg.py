@@ -8,9 +8,10 @@ from ..builder import LOSSES
 from .utils import weight_reduce_loss
 
 import sklearn.mixture as skm
+import numpy as np
 
 
-def gmm_policy(self, scores, given_gt_thr=0.02, policy='high'):
+def gmm_policy(scores, given_gt_thr=0.02, policy='high'):
     """The policy of choosing pseudo label.
 
     The previous GMM-B policy is used as default.
@@ -97,26 +98,35 @@ def py_sparse_sigmoid_focal_loss(pred,
     Returns:
         torch.Tensor: Calculated loss value.
     """
-    pred_sigmoid = pred.sigmoid()  # 计算概率
-    target = target.type_as(pred)
+    pred_sigmoid = pred.sigmoid()  # torch.Size([272800, 15])
+    pred_softmax = pred.softmax(dim=1)
+    target = target.type_as(pred)  # torch.Size([272800, 15])
     
     # Calculate px (1 - pt), where pt is the probability of correct classification 这里的px恒等于正确类别（可能是0、可能是1）的概率
-    px = (1 - pred_sigmoid) * target + pred_sigmoid * (1 - target) # px = 1 - pt
+    px = (1 - pred_sigmoid) * target + pred_sigmoid * (1 - target) # px = 1 - pt  px 越小，说明模型对当前样本的预测越自信（且正确）。
 
-    focal_weight = (alpha * target + (1 - alpha) * (1 - target)) * px.pow(gamma)
+    focal_weight = (alpha * target + (1 - alpha) * (1 - target)) * px.pow(gamma)  # torch.Size([272800, 15])
     
     # Original focal loss calculation
-    original_focal_loss = F.binary_cross_entropy_with_logits(pred, target, reduction='none') * focal_weight
+    original_focal_loss = F.binary_cross_entropy_with_logits(pred, target, reduction='none') * focal_weight   # torch.Size([272800, 15])
     
+    # # 现在的逻辑是，只要是target为0的地方，都需要乘以一个系数。
+    # hard_negatives = ((1 - px) < thresh) & (target == 0)  # 难分负样本,是target为0,而且预测值小于阈值的  torch.Size([272800, 15])
+        
     # Identify hard negatives (samples with pt < thresh) 这里等同于 p > 1 - thr p表示分类为正样本的概率
-    hard_negatives = ((1 - px) < thresh) & (target == 0)  # 难分负样本,是target为0,而且预测值小于阈值的
+    # 这里选中有sparse GT的行
+    easy_negatives =  ((1 - px) < thresh) & (target == 0) & ( target.sum(dim=1).unsqueeze(1).bool() )         
+    # 对于没有sparse GT标注的行
+    hard_negatives =  ((1 - px) < thresh) & (target == 0) & ( ~(target.sum(dim=1).unsqueeze(1).bool()) )   
     
     # Apply positive and hard negative weights
-    loss = original_focal_loss.clone()
+    loss = original_focal_loss.clone()  # torch.Size([272800, 15])
     loss = torch.where(target == 1, loss * positive_weight, loss)  # Positive sample weighting
-    loss = torch.where(hard_negatives, loss * hard_negative_weight, loss)  # Hard negative weighting
+    loss = torch.where(easy_negatives, loss * hard_negative_weight, loss)  # Hard negative weighting
+    loss = torch.where(hard_negatives, loss * hard_negative_weight * 0.5, loss)  # Hard negative weighting
+    
 
-    if weight is not None:
+    if weight is not None:  # 不运行
         # Adjust weight shape if necessary to match the loss dimensions
         if weight.shape != loss.shape:
             if weight.size(0) == loss.size(0):
@@ -131,7 +141,7 @@ def py_sparse_sigmoid_focal_loss(pred,
 
 
 @LOSSES.register_module()
-class SparseFocalLossGMM(nn.Module):
+class SparseFocalLossPg(nn.Module):
     """Implementation of Sparse Focal Loss with support for hard negative and positive weighting.
     
     Args:
@@ -154,7 +164,7 @@ class SparseFocalLossGMM(nn.Module):
                  loss_weight=1.0,
                  hard_negative_weight=0.3,
                  positive_weight=1.0):
-        super(SparseFocalLossGMM, self).__init__()
+        super(SparseFocalLossPg, self).__init__()
         assert use_sigmoid is True, 'Only sigmoid focal loss is supported currently.'
         self.use_sigmoid = use_sigmoid
         self.gamma = gamma
@@ -187,8 +197,8 @@ class SparseFocalLossGMM(nn.Module):
         reduction = reduction_override if reduction_override else self.reduction
         
         if self.use_sigmoid:
-            target = target.long()
-            num_classes = pred.size(1)
+            target = target.long()  # torch.Size([124432])
+            num_classes = pred.size(1)  
             target = F.one_hot(target, num_classes=num_classes + 1)
             target = target[:, :num_classes]
             

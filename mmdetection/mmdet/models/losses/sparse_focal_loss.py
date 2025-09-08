@@ -39,20 +39,20 @@ def py_sparse_sigmoid_focal_loss(pred,
     target = target.type_as(pred)
     
     # Calculate px (1 - pt), where pt is the probability of correct classification 这里的px恒等于正确类别（可能是0、可能是1）的概率
-    px = (1 - pred_sigmoid) * target + pred_sigmoid * (1 - target) # px = 1 - pt
+    px = (1 - pred_sigmoid) * target + pred_sigmoid * (1 - target) # px = 1 - pt  px 越小，说明模型对当前样本的预测越自信（且正确）。
 
-    focal_weight = (alpha * target + (1 - alpha) * (1 - target)) * px.pow(gamma)
+    focal_weight = (alpha * target + (1 - alpha) * (1 - target)) * px.pow(gamma)   # px 越小（预测越准确），focal_weight就越接近0，从而有效减少了简单样本的损失。
     
     # Original focal loss calculation
-    original_focal_loss = F.binary_cross_entropy_with_logits(pred, target, reduction='none') * focal_weight
+    original_focal_loss = F.binary_cross_entropy_with_logits(pred, target, reduction='none') * focal_weight   # 使用focal_weight来降低简单样本的损失权重
     
     # Identify hard negatives (samples with pt < thresh) 这里等同于 p > 1 - thr p表示分类为正样本的概率
-    hard_negatives = ((1 - px) < thresh) & (target == 0)  # 难分负样本,是target为0,而且预测值小于阈值的
+    hard_negatives = ((1 - px) < thresh) & (target == 0)  # 难分负样本,是target为0,而且预测值小于阈值 1 的。所以这里是把GT为0的全部作为负样本
     
     # Apply positive and hard negative weights
     loss = original_focal_loss.clone()
-    loss = torch.where(target == 1, loss * positive_weight, loss)  # Positive sample weighting
-    loss = torch.where(hard_negatives, loss * hard_negative_weight, loss)  # Hard negative weighting
+    loss = torch.where(target == 1, loss * positive_weight, loss)  # Positive sample weighting   正样本的话，乘以一个权重1
+    loss = torch.where(hard_negatives, loss * hard_negative_weight, loss)  # Hard negative weighting    负样本的话，乘以一个权重0.4
 
     if weight is not None:
         # Adjust weight shape if necessary to match the loss dimensions
@@ -87,10 +87,10 @@ class SparseFocalLoss(nn.Module):
                  use_sigmoid=True,
                  gamma=2.0,
                  alpha=0.25,
-                 thresh=0.5,
+                 thresh=0.5,   # 调用1.0
                  reduction='mean',
                  loss_weight=1.0,
-                 hard_negative_weight=0.3,
+                 hard_negative_weight=0.3,   # 调用0.4
                  positive_weight=1.0):
         super(SparseFocalLoss, self).__init__()
         assert use_sigmoid is True, 'Only sigmoid focal loss is supported currently.'
@@ -124,23 +124,23 @@ class SparseFocalLoss(nn.Module):
         assert reduction_override in (None, 'none', 'mean', 'sum')
         reduction = reduction_override if reduction_override else self.reduction
         
-        if self.use_sigmoid:
+        if self.use_sigmoid:   # 运行这句
             target = target.long()
             num_classes = pred.size(1)
             target = F.one_hot(target, num_classes=num_classes + 1)
             target = target[:, :num_classes]
             
-            loss_cls = self.loss_weight * py_sparse_sigmoid_focal_loss(
+            loss_cls = self.loss_weight * py_sparse_sigmoid_focal_loss(   # self.loss_weight 是1
                 pred,
                 target,
                 weight,
-                gamma=self.gamma,
-                alpha=self.alpha,
-                thresh=self.thresh,
-                reduction=reduction,
-                avg_factor=avg_factor,
-                hard_negative_weight=self.hard_negative_weight,
-                positive_weight=self.positive_weight
+                gamma=self.gamma,  # 2
+                alpha=self.alpha,  # 0.25
+                thresh=self.thresh,  # 1
+                reduction=reduction, 
+                avg_factor=avg_factor,  # 预测的正样本数量
+                hard_negative_weight=self.hard_negative_weight,  # 0.4
+                positive_weight=self.positive_weight  # 1.0
             )
         else:
             raise NotImplementedError("Only sigmoid focal loss is implemented.")
