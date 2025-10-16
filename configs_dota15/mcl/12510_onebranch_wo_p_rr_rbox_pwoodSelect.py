@@ -86,9 +86,10 @@ detector = dict(
         max_per_img=2000))
 
 model = dict(
-    type="MCLTeacherOneBr",
+    type="MCLTeacherOneBrPwoodSelect",
     model=detector,
-    # semi_loss_unsup=dict(type='Semi_GmmLoss', cls_channels=15),
+    semi_loss_unsup=dict(type='Semi_GmmLoss', cls_channels=15),
+    
     # semi_loss_unsup=dict(
     #     type='RotatedDTLossAssignerAssistentV3Merge', 
     #     loss_type='origin', 
@@ -101,11 +102,11 @@ model = dict(
     #     bbox_loss_type='l1',
     #     image_class_prompt_path='/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/image_class_prompt_30_10.pt'),
     
-    semi_loss_unsup=dict(
-        type='Semi_GmmLoss9_Wo_P', 
-        loss_type='origin', 
-        bbox_loss_type='l1',
-        image_class_prompt_path= '/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/rsst_prompt/image_class_prompt.pt'),
+    # semi_loss_unsup=dict(
+    #     type='Semi_GmmLoss9_Wo_P', 
+    #     loss_type='origin', 
+    #     bbox_loss_type='l1',
+    #     image_class_prompt_path= '/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/rsst_prompt/image_class_prompt.pt'),
     # semi_loss_sup=dict(
     #     type='Semi_GmmLossforLabeledData9', 
     #     loss_type='origin', 

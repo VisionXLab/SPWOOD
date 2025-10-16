@@ -16,3 +16,5 @@ from .rotated_mean_teacher import RotatedMeanTeacher
 from .rotated_unbaised_teacher import RotatedUnbaisedTeacher
 from .rotated_arsl import RotatedARSL
 from .rotated_pseco import RotatedPseCo
+
+from .mcl_onebr_pwoodSelect import MCLTeacherOneBrPwoodSelect

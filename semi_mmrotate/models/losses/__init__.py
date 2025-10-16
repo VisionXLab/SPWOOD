@@ -13,6 +13,8 @@ from .rotated_dense_teacher_loss_aa_v3_for_labeled_data_reply import RotatedDTLo
 from .rotated_dense_teacher_loss_aa_v3_for_labeled_data_merge import RotatedDTLossAssignerAssistentV3forLabeledDataMerge
 from .rotated_dense_teacher_loss_aa_v3_merge import RotatedDTLossAssignerAssistentV3Merge
 
+from .rotated_dense_teacher_loss_aa_v3_convert import RotatedDTLossAssignerAssistentV3Convert
+
 from .mcl_loss9 import Semi_GmmLoss9
 from .mcl_loss9forLabeledData import Semi_GmmLossforLabeledData9
 

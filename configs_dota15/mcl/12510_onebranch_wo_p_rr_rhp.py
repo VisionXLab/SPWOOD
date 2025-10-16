@@ -205,8 +205,8 @@ sup_pipeline = [
     dict(type='LoadAnnotations', with_bbox=True),
     dict(type='ConvertWeakSupervision1',   ####
         # rbox_proportion   # 0
-        point_proportion=0.0,   # 2
-        hbox_proportion=0.0,   # 1
+        point_proportion=0.33,   # 2
+        hbox_proportion=0.33,   # 1
         modify_labels=True,
         version=angle_version),
     dict(type='RResize', img_scale=(1024, 1024), ratio_range=(0.5, 1.5)),

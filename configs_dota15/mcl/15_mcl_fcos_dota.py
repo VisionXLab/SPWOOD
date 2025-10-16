@@ -27,7 +27,7 @@ detector = dict(
         relu_before_extra_convs=True),
     bbox_head=dict(
         type='SemiRotatedFCOSHeadMCL',
-        num_classes=15,
+        num_classes=16,
         in_channels=256,
         stacked_convs=4,
         feat_channels=256,
@@ -60,9 +60,9 @@ detector = dict(
 model = dict(
     type="MCLTeacher",
     model=detector,
-    semi_loss=dict(type='RotatedMCLLoss', cls_channels=15),
+    semi_loss=dict(type='RotatedMCLLoss', cls_channels=16),
     train_cfg=dict(
-        iter_count=0,
+        iter_count=99200,
         burn_in_steps=12800,
         sup_weight=1.0,
         unsup_weight=1.0,
@@ -152,7 +152,8 @@ dataset_type = 'DOTADataset'
 classes = ('plane', 'baseball-diamond', 'bridge', 'ground-track-field',
            'small-vehicle', 'large-vehicle', 'ship', 'tennis-court',
            'basketball-court', 'storage-tank', 'soccer-ball-field',
-           'roundabout', 'harbor', 'swimming-pool', 'helicopter')
+           'roundabout', 'harbor', 'swimming-pool', 'helicopter',
+           'container-crane')
 data = dict(
     samples_per_gpu=3,
     workers_per_gpu=5,
@@ -160,15 +161,15 @@ data = dict(
         type="SemiDataset",
         sup=dict(
             type=dataset_type,
-            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/10/semisparse/20/label_annotation/",
-            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/10/semisparse/20/label_image/",
+            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DOTA15/trainval_ss2/30/semisparse/20/label_annotation/",
+            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DOTA15/trainval_ss2/30/semisparse/20/label_image/",
             classes=classes,
             pipeline=sup_pipeline,
         ),
         unsup=dict(
             type=dataset_type,
-            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/10/semisparse/20/unlabel_annotation/",
-            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/10/semisparse/20/unlabel_image/",
+            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DOTA15/trainval_ss2/30/semisparse/20/unlabel_annotation/",
+            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DOTA15/trainval_ss2/30/semisparse/20/unlabel_image/",
             classes=classes,
             pipeline=unsup_pipeline,
             filter_empty_gt=False,
@@ -176,8 +177,8 @@ data = dict(
     ),
     val=dict(
         type=dataset_type,
-        img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/split_ss_dota/trainval/images/",
-        ann_file='/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/split_ss_dota/trainval/annfiles/',
+        img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DOTA15/split_ss/trainval/images/",
+        ann_file='/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DOTA15/split_ss/trainval/annfiles/',
         classes=classes,
         pipeline=test_pipeline
     ),
