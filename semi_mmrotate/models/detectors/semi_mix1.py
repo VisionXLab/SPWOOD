@@ -302,7 +302,40 @@ class SemiMix1(RotatedSingleStageDetector):
                                      batch_gt_instances,
                                      batch_img_metas)
 
-        # self.debug = True
+        self.debug = False
+        # if self.debug:
+        #     for i in range(len(batch_inputs_all)):
+        #         img = batch_inputs_all[i]
+        #         if self.bbox_head.vis[i]:
+        #             vor, wat = self.bbox_head.vis[i]
+        #             img[0, wat != wat.max()] += 2
+        #             img[:, vor != vor.max()] -= 1
+        #         img = img.permute(1, 2, 0).cpu().numpy()
+        #         img = np.ascontiguousarray(img[..., (2, 1, 0)] * 58 + 127)
+        #         bb = batch_data_samples_all[i]['gt_instances']['bboxes']
+        #         ll = batch_data_samples_all[i]['gt_instances']['labels']
+        #         for b, l in zip(bb.cpu().numpy(), ll.cpu().numpy()):
+        #             b[2:4] = b[2:4].clip(3)
+        #             plot_one_rotated_box(img, b, (255, 0, 0))
+        #         if i < len(converted_results_list):
+        #             bb = converted_results_list[i]['bboxes']
+        #             if hasattr(converted_results_list[i], 'informs'):
+        #                 for b, l in zip(bb.cpu().numpy(), converted_results_list[i].infoms.cpu().numpy()):
+        #                     plot_one_rotated_box(img, b, (0, 255, 0), label=f'{l}')
+        #             else:
+        #                 for b in bb.cpu().numpy():
+        #                     plot_one_rotated_box(img, b, (0, 255, 0))
+                            
+        #         full_path = batch_data_samples_all[i]['metainfo']['filename']
+        #         filename_with_ext = os.path.basename(full_path)
+        #         filename_only, ext = os.path.splitext(filename_with_ext)
+        #         img_id = filename_only
+        #         img = np.clip(img, 0, 255).astype(np.uint8)
+        #         cv2.imwrite(f'./show/{img_id}.png', img)
+        
+        # return losses
+    
+    
         if self.debug:
             for i in range(len(batch_inputs_all)):
                 img = batch_inputs_all[i]
@@ -310,26 +343,41 @@ class SemiMix1(RotatedSingleStageDetector):
                     vor, wat = self.bbox_head.vis[i]
                     img[0, wat != wat.max()] += 2
                     img[:, vor != vor.max()] -= 1
+                
+                # 1. 图像格式转换和数值范围调整
                 img = img.permute(1, 2, 0).cpu().numpy()
                 img = np.ascontiguousarray(img[..., (2, 1, 0)] * 58 + 127)
-                bb = batch_data_samples_all[i]['gt_instances']['bboxes']
-                ll = batch_data_samples_all[i]['gt_instances']['labels']
-                for b, l in zip(bb.cpu().numpy(), ll.cpu().numpy()):
-                    b[2:4] = b[2:4].clip(3)
-                    plot_one_rotated_box(img, b, (255, 0, 0))
+                # 2. 【重要】在绘图前就将图像转为 uint8 类型
+                img = np.clip(img, 0, 255).astype(np.uint8)
+                
+                
+                # 3. 绘制绿色的预测框 (先画，线宽设置细一点)
                 if i < len(converted_results_list):
                     bb = converted_results_list[i]['bboxes']
                     if hasattr(converted_results_list[i], 'informs'):
                         for b, l in zip(bb.cpu().numpy(), converted_results_list[i].infoms.cpu().numpy()):
-                            plot_one_rotated_box(img, b, (0, 255, 0), label=f'{l}')
+                            # 使用 line_thickness 参数
+                            plot_one_rotated_box(img, b, (0, 255, 0), label=f'{l}', line_thickness=1)
                     else:
                         for b in bb.cpu().numpy():
-                            plot_one_rotated_box(img, b, (0, 255, 0))
-                # img_id = batch_data_samples_all[i]['metainfo']['filename']
-                img_id = i
-                img = np.clip(img, 0, 255).astype(np.uint8)
-                cv2.imwrite(f'./show/{img_id}.png', img)
-        
+                            plot_one_rotated_box(img, b, (0, 255, 0), line_thickness=1)
+                
+                # 4. 绘制红色的真实框 (后画，会覆盖在绿色框之上，线宽粗一点)
+                bb = batch_data_samples_all[i]['gt_instances']['bboxes']
+                ll = batch_data_samples_all[i]['gt_instances']['labels']
+                for b, l in zip(bb.cpu().numpy(), ll.cpu().numpy()):
+                    # Use a small threshold for floating-point comparison
+                    plot_one_rotated_box(img, b, (255, 0, 0), line_thickness=2)
+                    
+                # 5. 保存图像
+                img_path = batch_data_samples_all[i]['metainfo']['filename']
+                import os
+                img_name = os.path.basename(img_path)
+                img_out = os.path.join('./show', img_name)
+                
+                # 由于前面已经转换过，这里无需再次转换
+                cv2.imwrite(img_out, img)
+
         return losses
 
 

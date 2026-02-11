@@ -5,7 +5,7 @@ from copy import deepcopy
 
 # model settings
 detector = dict(
-    type='SemiMix1',
+    type='SemiMix',
     ss_prob=[0.68, 0.07, 0.25],
     backbone=dict(
         type='ResNet',
@@ -27,8 +27,8 @@ detector = dict(
         num_outs=5,
         relu_before_extra_convs=True),
     bbox_head=dict(
-        type='SemiMixHead1',
-        num_classes=15,
+        type='SemiMixHead',
+        num_classes=20,
         in_channels=256,
         stacked_convs=4,
         feat_channels=256,
@@ -50,18 +50,11 @@ detector = dict(
             num_step=3,
             thr_mod=0),
         loss_cls=dict(
-            # type='mmdet.FocalLoss',
-            # use_sigmoid=True,
-            # gamma=2.0,
-            # alpha=0.25,
-            # loss_weight=1.0),
-            type='SparseFocalLoss',
+            type='mmdet.FocalLoss',
             use_sigmoid=True,
             gamma=2.0,
             alpha=0.25,
-            thresh=1.0,
-            loss_weight=1.0,
-            hard_negative_weight=0.4),
+            loss_weight=1.0),
         #loss_cent=dict(type='mmdet.L1Loss', loss_weight=0.05),
         loss_overlap=dict(
             type='GaussianOverlapLoss', loss_weight=10.0, lamb=0),  ####
@@ -86,31 +79,9 @@ detector = dict(
         max_per_img=2000))
 
 model = dict(
-    type="MCLTeacherOneBr",
+    type="MCLTeacher",
     model=detector,
-    # semi_loss_unsup=dict(type='Semi_GmmLoss', cls_channels=15),
-    # semi_loss_unsup=dict(
-    #     type='RotatedDTLossAssignerAssistentV3Merge', 
-    #     loss_type='origin', 
-    #     bbox_loss_type='l1',
-    #     image_class_prompt_path= '/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/image_class_prompt.pt'),
-    # semi_loss_sup=dict(
-    #     type='RotatedDTLossAssignerAssistentV3forLabeledDataReply', 
-    #     # type='RotatedDTLossAssignerAssistentV3forLabeledData', 
-    #     loss_type='origin', 
-    #     bbox_loss_type='l1',
-    #     image_class_prompt_path='/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/image_class_prompt_30_10.pt'),
-    
-    semi_loss_unsup=dict(
-        type='Semi_GmmLoss9_Wo_P_Adpinds', 
-        loss_type='origin', 
-        bbox_loss_type='l1',
-        image_class_prompt_path= '/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/image_class_prompt.pt'),
-    # semi_loss_sup=dict(
-    #     type='Semi_GmmLossforLabeledData9', 
-    #     loss_type='origin', 
-    #     bbox_loss_type='l1',
-    #     image_class_prompt_path='/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/image_class_prompt_30_10.pt'),
+    semi_loss=dict(type='Semi_GmmLoss', cls_channels=20),
     train_cfg=dict(
         iter_count=0,
         burn_in_steps=12800,
@@ -118,7 +89,6 @@ model = dict(
         unsup_weight=1.0,
         weight_suppress="linear",
         logit_specific_weights=dict(),
-        region_ratio=0.03,
     ),
     test_cfg=dict(inference_on="teacher"), 
 )
@@ -137,7 +107,7 @@ common_pipeline = [
                     'flip_direction', 'img_norm_cfg', 'tag')
          )
 ]
-strong_pipeline_unlabeled = [
+strong_pipeline = [
     dict(type='DTToPILImage'),
     dict(type='DTRandomApply', operations=[transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
     dict(type='DTRandomGrayscale', p=0.2),
@@ -146,67 +116,34 @@ strong_pipeline_unlabeled = [
     ]),
     # dict(type='DTRandCrop'),
     dict(type='DTToNumpy'),
-    dict(type="ExtraAttrs", tag="unsup_strong_unlabeled"),
+    dict(type="ExtraAttrs", tag="unsup_strong"),
 ]
-weak_pipeline_unlabeled = [
+weak_pipeline = [
     # dict(type='LoadImageFromFile'),
     # dict(type='LoadAnnotations', with_bbox=True),
-    # dict(type='RResize', img_scale=(1024, 1024)),
-    dict(type='RResize', img_scale=(1024, 1024), ratio_range=(0.5, 1.5)),
+    dict(type='RResize', img_scale=(1024, 1024)),
     dict(
         type='RRandomFlip',
         flip_ratio=[0.25, 0.25, 0.25],
         direction=['horizontal', 'vertical', 'diagonal'],
         version=angle_version),
-    dict(type="ExtraAttrs", tag="unsup_weak_unlabeled"),
+    dict(type="ExtraAttrs", tag="unsup_weak"),
 ]
-unsup_pipeline_unlabeled = [
+unsup_pipeline = [
     dict(type="LoadImageFromFile"),
-    dict(type="LoadAnnotations", with_bbox=True),
+    # dict(type="LoadAnnotations", with_bbox=True),
     # generate fake labels for data format compatibility
-    # dict(type="LoadEmptyAnnotations", with_bbox=True),
-    dict(type="STMultiBranch", unsup_strong=deepcopy(strong_pipeline_unlabeled), unsup_weak=deepcopy(weak_pipeline_unlabeled),
+    dict(type="LoadEmptyAnnotations", with_bbox=True),
+    dict(type="STMultiBranch", unsup_strong=deepcopy(strong_pipeline), unsup_weak=deepcopy(weak_pipeline),
          common_pipeline=common_pipeline, is_seq=True), 
 ]
-strong_pipeline_labeled = [
-    dict(type='DTToPILImage'),
-    dict(type='DTRandomApply', operations=[transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
-    dict(type='DTRandomGrayscale', p=0.2),
-    dict(type='DTRandomApply', operations=[
-        dict(type='DTGaussianBlur', rad_range=[0.1, 2.0])
-    ]),
-    # dict(type='DTRandCrop'),
-    dict(type='DTToNumpy'),
-    dict(type="ExtraAttrs", tag="unsup_strong_labeled"),
-]
-weak_pipeline_labeled = [
-    # dict(type='LoadImageFromFile'),
-    # dict(type='LoadAnnotations', with_bbox=True),
-    # dict(type='RResize', img_scale=(1024, 1024)),
-    dict(type='RResize', img_scale=(1024, 1024), ratio_range=(0.5, 1.5)),
-    dict(
-        type='RRandomFlip',
-        flip_ratio=[0.25, 0.25, 0.25],
-        direction=['horizontal', 'vertical', 'diagonal'],
-        version=angle_version),
-    dict(type="ExtraAttrs", tag="unsup_weak_labeled"),
-]
-unsup_pipeline_labeled = [
-    dict(type="LoadImageFromFile"),
-    dict(type="LoadAnnotations", with_bbox=True),
-    # generate fake labels for data format compatibility
-    # dict(type="LoadEmptyAnnotations", with_bbox=True),
-    dict(type="STMultiBranch", unsup_strong=deepcopy(strong_pipeline_labeled), unsup_weak=deepcopy(weak_pipeline_labeled),
-         common_pipeline=common_pipeline, is_seq=True), 
-]
-
 sup_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True),
     dict(type='ConvertWeakSupervision1',   ####
-        # rbox_proportion   # 0
-        point_proportion=0.0,   # 2
-        hbox_proportion=1.0,   # 1
+        # rbox_proportion
+        point_proportion=0.0,
+        hbox_proportion=0.0,
         modify_labels=True,
         version=angle_version),
     dict(type='RResize', img_scale=(1024, 1024)),
@@ -241,63 +178,56 @@ test_pipeline = [
 ]
 
 dataset_type = 'DOTADataset'   
-classes = ('plane', 'baseball-diamond', 'bridge', 'ground-track-field',
-           'small-vehicle', 'large-vehicle', 'ship', 'tennis-court',
-           'basketball-court', 'storage-tank', 'soccer-ball-field',
-           'roundabout', 'harbor', 'swimming-pool', 'helicopter')
+# classes = ('plane', 'baseball-diamond', 'bridge', 'ground-track-field',
+#            'small-vehicle', 'large-vehicle', 'ship', 'tennis-court',
+#            'basketball-court', 'storage-tank', 'soccer-ball-field',
+#            'roundabout', 'harbor', 'swimming-pool', 'helicopter')
+classes = ('golffield','vehicle','Expressway-toll-station','trainstation','chimney','storagetank','ship','harbor','airplane','tenniscourt',
+    'groundtrackfield','dam','basketballcourt','Expressway-Service-area','stadium','airport','baseballfield','bridge','windmill','overpass')
 
 data = dict(
-    samples_per_gpu=4,
+    samples_per_gpu=3,
     workers_per_gpu=5,
     train=dict(
-        type="SparseDataset",
+        type="SemiDataset",
         sup=dict(
             type=dataset_type,
-            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/20/semisparse/1/label_annotation",
-            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/20/semisparse/1/label_image",
+            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DIOR/4_semi_sparse/30/semisparse/20/label_annotation/",##########
+            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DIOR/4_semi_sparse/30/semisparse/20/label_image/",##########
             classes=classes,
             pipeline=sup_pipeline,
         ),
-        unsup_unlabeled=dict(
+        unsup=dict(
             type=dataset_type,
-            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/20/semisparse/1/unlabel_annotation",
-            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/20/semisparse/1/unlabel_image",
+            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DIOR/4_semi_sparse/30/semisparse/20/unlabel_annotation/",##########
+            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DIOR/4_semi_sparse/30/semisparse/20/unlabel_image/",###########
             classes=classes,
-            pipeline=unsup_pipeline_unlabeled,
-            filter_empty_gt=False,
-        ),
-        unsup_labeled=dict(
-            type=dataset_type,
-            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/20/semisparse/1/label_annotation",
-            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/20/semisparse/1/label_image",
-            classes=classes,
-            pipeline=unsup_pipeline_labeled,
+            pipeline=unsup_pipeline,
             filter_empty_gt=False,
         ),
     ),
     val=dict(
         type=dataset_type,
-        img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/split_ss_dota/trainval/images",
-        ann_file='/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/split_ss_dota/trainval/annfiles',
+        img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DIOR/3_split_ss_dota/test/images/",
+        ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DIOR/3_split_ss_dota/test/annfiles/",
         classes=classes,
         pipeline=test_pipeline
     ),
     test=dict(
         type=dataset_type,
-        img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/split_ss_dota/test/images",
-        ann_file='/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/split_ss_dota/test/images',
+        img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/split_ss_dota/test/images/",
+        ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/split_ss_dota/test/images/",
         classes=classes,
         pipeline=test_pipeline,
     ),
     sampler=dict(
         train=dict(
             type="MultiSourceSampler",
-            sample_ratio=[2, 1, 1],
+            sample_ratio=[2, 1],
             seed=42
         )
     ),
 )
-
 
 custom_hooks = [
     dict(type="NumClassCheckHook"),

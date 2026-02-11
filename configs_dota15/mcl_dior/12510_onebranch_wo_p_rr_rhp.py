@@ -5,7 +5,7 @@ from copy import deepcopy
 
 # model settings
 detector = dict(
-    type='SemiMixResAll',
+    type='SemiMix1',
     ss_prob=[0.68, 0.07, 0.25],
     backbone=dict(
         type='ResNet',
@@ -28,7 +28,7 @@ detector = dict(
         relu_before_extra_convs=True),
     bbox_head=dict(
         type='SemiMixHead1',
-        num_classes=15,
+        num_classes=20,
         in_channels=256,
         stacked_convs=4,
         feat_channels=256,
@@ -86,7 +86,7 @@ detector = dict(
         max_per_img=2000))
 
 model = dict(
-    type="MCLTeacherOneBrRes",
+    type="MCLTeacherOneBr",
     model=detector,
     # semi_loss_unsup=dict(type='Semi_GmmLoss', cls_channels=15),
     # semi_loss_unsup=dict(
@@ -102,17 +102,17 @@ model = dict(
     #     image_class_prompt_path='/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/image_class_prompt_30_10.pt'),
     
     semi_loss_unsup=dict(
-        type='Semi_GmmLoss9_Wo_P_Adpinds', 
+        type='Semi_GmmLoss9_Wo_P_dior', 
         loss_type='origin', 
         bbox_loss_type='l1',
-        image_class_prompt_path= '/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/image_class_prompt.pt'),
+        image_class_prompt_path= '/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/rsst_prompt/image_class_prompt.pt'),
     # semi_loss_sup=dict(
     #     type='Semi_GmmLossforLabeledData9', 
     #     loss_type='origin', 
     #     bbox_loss_type='l1',
     #     image_class_prompt_path='/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/image_class_prompt_30_10.pt'),
     train_cfg=dict(
-        iter_count=0,
+        iter_count=169600,
         burn_in_steps=12800,
         sup_weight=1.0,
         unsup_weight=1.0,
@@ -205,11 +205,11 @@ sup_pipeline = [
     dict(type='LoadAnnotations', with_bbox=True),
     dict(type='ConvertWeakSupervision1',   ####
         # rbox_proportion   # 0
-        point_proportion=0.0,   # 2
-        hbox_proportion=1.0,   # 1
+        point_proportion=0,   # 2
+        hbox_proportion=0,   # 1
         modify_labels=True,
         version=angle_version),
-    dict(type='RResize', img_scale=(1024, 1024)),
+    dict(type='RResize', img_scale=(1024, 1024), ratio_range=(0.5, 1.5)),
     dict(
         type='RRandomFlip',
         flip_ratio=[0.25, 0.25, 0.25],
@@ -241,10 +241,13 @@ test_pipeline = [
 ]
 
 dataset_type = 'DOTADataset'   
-classes = ('plane', 'baseball-diamond', 'bridge', 'ground-track-field',
-           'small-vehicle', 'large-vehicle', 'ship', 'tennis-court',
-           'basketball-court', 'storage-tank', 'soccer-ball-field',
-           'roundabout', 'harbor', 'swimming-pool', 'helicopter')
+# classes = ('plane', 'baseball-diamond', 'bridge', 'ground-track-field',
+#            'small-vehicle', 'large-vehicle', 'ship', 'tennis-court',
+#            'basketball-court', 'storage-tank', 'soccer-ball-field',
+#            'roundabout', 'harbor', 'swimming-pool', 'helicopter')
+
+classes = ('golffield','vehicle','Expressway-toll-station','trainstation','chimney','storagetank','ship','harbor','airplane','tenniscourt',
+    'groundtrackfield','dam','basketballcourt','Expressway-Service-area','stadium','airport','baseballfield','bridge','windmill','overpass')
 
 data = dict(
     samples_per_gpu=4,
@@ -253,23 +256,23 @@ data = dict(
         type="SparseDataset",
         sup=dict(
             type=dataset_type,
-            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/20/semisparse/1/label_annotation",
-            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/20/semisparse/1/label_image",
+            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DIOR/4_semi_sparse/30/semisparse/20/label_annotation",
+            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DIOR/4_semi_sparse/30/semisparse/20/label_image",
             classes=classes,
             pipeline=sup_pipeline,
         ),
         unsup_unlabeled=dict(
             type=dataset_type,
-            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/20/semisparse/1/unlabel_annotation",
-            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/20/semisparse/1/unlabel_image",
+            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DIOR/4_semi_sparse/30/semisparse/20/unlabel_annotation",
+            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DIOR/4_semi_sparse/30/semisparse/20/unlabel_image",
             classes=classes,
             pipeline=unsup_pipeline_unlabeled,
             filter_empty_gt=False,
         ),
         unsup_labeled=dict(
             type=dataset_type,
-            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/20/semisparse/1/label_annotation",
-            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/trainval_ss2/20/semisparse/1/label_image",
+            ann_file="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DIOR/4_semi_sparse/30/semisparse/20/label_annotation",
+            img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DIOR/4_semi_sparse/30/semisparse/20/label_image",
             classes=classes,
             pipeline=unsup_pipeline_labeled,
             filter_empty_gt=False,
@@ -277,8 +280,8 @@ data = dict(
     ),
     val=dict(
         type=dataset_type,
-        img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/split_ss_dota/trainval/images",
-        ann_file='/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/split_ss_dota/trainval/annfiles',
+        img_prefix="/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DIOR/3_split_ss_dota/test/images",
+        ann_file='/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/adata/DIOR/3_split_ss_dota/test/annfiles',
         classes=classes,
         pipeline=test_pipeline
     ),

@@ -23,3 +23,5 @@ from .mcl_loss9forLabeledData import Semi_GmmLossforLabeledData9
 from .mcl_loss9_wo_p import Semi_GmmLoss9_Wo_P
 from .mcl_loss9_wo_p_adpinds import Semi_GmmLoss9_Wo_P_Adpinds
 
+from .mcl_loss9_wo_p_dior import Semi_GmmLoss9_Wo_P_dior
+

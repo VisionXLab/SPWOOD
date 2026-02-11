@@ -48,11 +48,11 @@ python -m torch.distributed.launch \
     --node_rank=0 \
     --master_addr="127.0.0.1" \
     --nproc_per_node=2 \
-    --master_port=25510 \
+    --master_port=25530 \
     train.py /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/configs_dota15/mcl/12510_onebranch_wo_p_rr_rhp.py \
     --launcher pytorch \
-    --work-dir zw_result/data2_onebr_wo_p_rr_rhp_3020' \
-> ./zz_log/data2_onebr_wo_p_rr_rhp_3020.log 2>&1 &
+    --work-dir zw_result/data2_onebr_wo_p_rr_rhp_028_2020' \
+> ./zz_log/data2_onebr_wo_p_rr_rhp_028_2020.log 2>&1 &
 
 单分支无prompt(ratio_range) 旋转框：dota1ss1
 nohup bash -c 'CUDA_VISIBLE_DEVICES=0,1 \
@@ -293,57 +293,7 @@ python -m torch.distributed.launch \
     --work-dir zw_result/data2_onebr_wo_p_3010' \
 > ./zz_log/data2_onebr_wo_p_3010.log 2>&1 &
 
-单分支无prompt + 自监督loss：
-nohup bash -c 'CUDA_VISIBLE_DEVICES=2,3 \
-python -m torch.distributed.launch \
-    --nnodes=1 \
-    --node_rank=0 \
-    --master_addr="127.0.0.1" \
-    --nproc_per_node=2 \
-    --master_port=25530 \
-    train.py configs_dota15/mcl/12510_onebranch_wo_p_res.py \
-    --launcher pytorch \
-    --work-dir zw_result/data2_onebr_wo_p_resall_2001' \
-> ./zz_log/data2_onebr_wo_p_resall_2001.log 2>&1 &
 
-单分支无prompt + 自适应选点：
-nohup bash -c 'CUDA_VISIBLE_DEVICES=0,1 \
-python -m torch.distributed.launch \
-    --nnodes=1 \
-    --node_rank=0 \
-    --master_addr="127.0.0.1" \
-    --nproc_per_node=2 \
-    --master_port=25530 \
-    train.py configs_dota15/mcl/12510_onebranch_wo_p_adpinds.py \
-    --launcher pytorch \
-    --work-dir zw_result/data2_onebr_wo_p_adpinds_2001' \
-> ./zz_log/data2_onebr_wo_p_adpinds_2001.log 2>&1 &
-
-单分支无prompt + 自适应选点 + 自监督loss：
-nohup bash -c 'CUDA_VISIBLE_DEVICES=0,1 \
-python -m torch.distributed.launch \
-    --nnodes=1 \
-    --node_rank=0 \
-    --master_addr="127.0.0.1" \
-    --nproc_per_node=2 \
-    --master_port=25510 \
-    train.py configs_dota15/mcl/12510_onebranch_wo_p_adpinds_res.py \
-    --launcher pytorch \
-    --work-dir zw_result/data2_onebr_wo_p_adpinds_res_2001' \
-> ./zz_log/data2_onebr_wo_p_adpinds_res_2001.log 2>&1 &
-
-监督sparse双分支： 
-nohup bash -c 'CUDA_VISIBLE_DEVICES=0,1,2,3 \
-python -m torch.distributed.launch \
-    --nnodes=1 \
-    --node_rank=0 \
-    --master_addr="127.0.0.1" \
-    --nproc_per_node=4 \
-    --master_port=25530 \
-    train.py configs_dota15/mcl/12510_supsparse.py \
-    --launcher pytorch \
-    --work-dir zw_result/data2_sup_2050' \
-> ./zz_log/data2_sup_2050.log 2>&1 &
 
 传统双分支： 
 nohup bash -c 'CUDA_VISIBLE_DEVICES=2,3 \
@@ -365,12 +315,12 @@ python -m torch.distributed.launch \
     --node_rank=0 \
     --master_addr="127.0.0.1" \
     --nproc_per_node=2 \
-    --master_port=25550 \
-    train.py /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/configs_dota15/mcl/12510_onebranch_wo_p_rr_rbox_dota1ss1.py \
-    --resume-from /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zw_result/data2_onebr_wo_p_rr_rbox_ss1_3010/iter_73600.pth \
+    --master_port=25500 \
+    train.py /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/configs_dota15/mcl/12510_onebranch_wo_p_rr_rhp.py \
+    --resume-from /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zw_result_paper/data2_onebr_wo_p_rr_rbox_3020/best_0.646723_mAP.pth \
     --launcher pytorch \
-    --work-dir /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zw_result/data2_onebr_wo_p_rr_rbox_ss1_3010' \
-> /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zz_log/data2_onebr_wo_p_rr_rbox_ss1_3010_2.log 2>&1 &
+    --work-dir /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zw_result/GMM_TXT' \
+> /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zz_log/GMM_TXT.log 2>&1 &
 
 resume
 nohup bash -c 'CUDA_VISIBLE_DEVICES=1 \
@@ -395,27 +345,27 @@ python -m torch.distributed.launch \
     --master_addr="127.0.0.1" \
     --nproc_per_node=2 \
     --master_port=25500 \
-    train.py /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/RSST/RSST/config_sparse/rsst/rsst_fcos_dota_percent1_with_pseudo_labeled_data_3branch.py \
+    train.py /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/RSST/RSST/config_sparse/rsst/rsst_fcos_dota_percent1_with_pseudo_labeled_data_2branch.py \
     --launcher pytorch \
-    --work-dir /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zw_result/data2_rsst_2020_2' \
-> /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zz_log/data2_rsst_2020_2.log 2>&1 &
+    --work-dir /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zw_result/mmeory' \
+> /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zz_log/mmeory.log 2>&1 &
 
 
 
 
 cd /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/sood-mcl
 
-nohup bash -c 'CUDA_VISIBLE_DEVICES=2,3 \
+nohup bash -c 'CUDA_VISIBLE_DEVICES=0,1 \
 python -m torch.distributed.launch \
     --nnodes=1 \
     --node_rank=0 \
     --master_addr="127.0.0.1" \
     --nproc_per_node=2 \
-    --master_port=25510 \
-    train.py configs_dota15/mcl/mcl_fcos_dota15_20p.py \
+    --master_port=25500 \
+    train.py /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/configs_dota15/mcl/10_mcl_fcos_dota.py \
     --launcher pytorch \
-    --work-dir /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zw_result/data2_mcl_3010' \
-> /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zz_log/data2_mcl_3010.log 2>&1 &
+    --work-dir /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zw_result/memory' \
+> /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zz_log/memory.log 2>&1 &
 
 
 CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --nnodes=1 \
@@ -431,15 +381,15 @@ train.py /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/configs_dot
 
 无标签测试（test）：注意the out_folder should be a non-exist path
 cd /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/RSST/RSST
-python test.py /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/RSST/RSST/config_sparse/rsst/rsst_fcos_dota_percent1_with_pseudo_labeled_data_2branch.py /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zw_result_toAnalyze/data2_baseline_rsst_2050/best_0.595138_mAP.pth --format-only --eval-options submission_dir=/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zw_result_toAnalyze/data2_baseline_rsst_2050/task1_data2_baseline_rsst_2050
+python test.py /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/configs_dota15/mcl/12510_onebranch_wo_p_rr_rhp.py /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zw_result_paper/data2_onebr_wo_p_rr_rbox_3020/best_0.646723_mAP.pth --format-only --eval-options submission_dir=/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zw_result/show
 
 cd /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl
-python test.py /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/configs_dota15/mcl/12510_onebranch_wo_p_rr_rhp.py /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zw_result/data2_onebr_wo_p_rr_rhp_3020/best_0.604927_mAP.pth --format-only --eval-options submission_dir=/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zw_result/data2_onebr_wo_p_rr_rhp_3020/task1_data2_onebr_wo_p_rr_rhp_3020
+python test.py /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/configs_dota15/mcl_dior/12510_onebranch_wo_p_rr_rhp.py /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zw_result_toAnalyze/data2_onebr_wo_p_rr_rhp_101_2020/best_0.584599_mAP.pth --format-only --eval-options submission_dir=/inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zw_result_toAnalyze/data2_onebr_wo_p_rr_rhp_101_2020/task1_data2_onebr_wo_p_rr_rhp_101_2020
 
 
 
 有标签测试（train/val）：
-python test.py /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/configs_dota15/mcl/12510.py /mnt/nas-new/home/zhanggefan/zw/mcl/zz_result1/mclrsst3a/best_0.633173_mAP.pth --eval mAP
+python test.py /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/RSST/RSST/config_sparse/rsst/rsst_rbox_2branch.py /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zw_result/rsst_rbox_2branch_3020/best_0.750725_mAP.pth --show-dir /inspire/hdd/project/wuliqifa/gaoyubing-240108110053/zw/mcl/zw_result/vis
 
 在/mnt/nas-new/home/zhanggefan/zw/mcl/semi_mmrotate/models/mcl.py中检查数据
 水平框的角度为什么不为零
