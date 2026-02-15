@@ -25,7 +25,6 @@ class Semi_GmmLoss9_Wo_P(nn.Module):
                  cls_channels=len(CLASSES),
                  loss_type='origin', 
                  bbox_loss_type='l1', 
-                 image_class_prompt_path='/mnt/nas-new/home/zhanggefan/liuxiang/mcl/Assinger_Assistent/image_class_prompt_from_chat.pt',
                  policy = 'high',
                  angle_coder=dict(
                      type='PSCCoder',
@@ -54,10 +53,7 @@ class Semi_GmmLoss9_Wo_P(nn.Module):
         self.strides = strides 
         self.mean_score = []
         self.thres = []
-    '''
-    将“以层级为中心、保留空间结构”的数据，转换为“以图像为中心、扁平化”的列表结构
-    这样可以方便后续逐个位置的loss计算、以及筛选预测等操作。
-    '''
+        
     def pre_processing(self, logits):
 
         cls_scores, bbox_preds, angle_preds, centernesses = logits
@@ -96,27 +92,10 @@ class Semi_GmmLoss9_Wo_P(nn.Module):
             ], dim=0))
 
             img_logits_list.append(img_logits)
-        #img_logits_list里面元素为img_lofits，数量为batch_size，每个元素代表每张图像的预测结果，包含类别分数、边界框预测和中心度预测
-        #img_logits里面每个元素包含了对应图片的所有FPN层的预测结果
         return img_logits_list
     
 
     def gmm_policy(self, scores, given_gt_thr=0.02, policy='high'):
-        """The policy of choosing pseudo label.
-
-        The previous GMM-B policy is used as default.
-        1. Use the predicted bbox to fit a GMM with 2 center.
-        2. Find the predicted bbox belonging to the positive
-            cluster with highest GMM probability.
-        3. Take the class score of the finded bbox as gt_thr.
-
-        Args:
-            scores (nd.array): The scores.
-
-        Returns:
-            float: Found gt_thr.
-
-        """
         if len(scores) < 4:
             return given_gt_thr
         if isinstance(scores, torch.Tensor):
@@ -137,24 +116,16 @@ class Semi_GmmLoss9_Wo_P(nn.Module):
         assert policy in ['middle', 'high']
         if policy == 'high':
             if (gmm_assignment == 1).any():
-                # 将所有低分簇样本的GMM概率设为负无穷，确保它们不被选中
                 gmm_scores[gmm_assignment == 0] = -np.inf
-                # 找到GMM概率最高的那个点的索引
                 indx = np.argmax(gmm_scores, axis=0)
-                # 筛选出同时满足以下两个条件的点：
-                # 1. 属于高分簇 (gmm_assignment == 1)
-                # 2. 得分不低于GMM概率最高那个点的得分 (scores >= scores[indx])
                 pos_indx = (gmm_assignment == 1) & (
                     scores >= scores[indx]).squeeze()
                 pos_thr = float(scores[pos_indx].min())
-                # pos_thr = max(given_gt_thr, pos_thr)
             else:
                 pos_thr = given_gt_thr
         elif policy == 'middle':
             if (gmm_assignment == 1).any():
-                # 直接取所有被分到高分簇的点的最低分作为阈值
                 pos_thr = float(scores[gmm_assignment == 1].min())
-                # pos_thr = max(given_gt_thr, pos_thr)
             else:
                 pos_thr = given_gt_thr
 
@@ -234,15 +205,11 @@ class Semi_GmmLoss9_Wo_P(nn.Module):
                 
                 selected_indices = torch.cat([selected_indices, selected_indices_layers], dim=0).long()
 
-        
-            # 7. 最终的索引
-            selected_inds = selected_indices  # 确保索引有序
+            selected_inds = selected_indices
 
-            # 保持 P5+ 层的原始置信度
             weight_mask = torch.zeros_like(max_vals)
             weight_mask[selected_inds] = max_vals[selected_inds]
             b_mask = weight_mask > 0.
-
 
         if b_mask.sum() == 0:
             loss_cls = QFLv2(
@@ -257,11 +224,10 @@ class Semi_GmmLoss9_Wo_P(nn.Module):
             loss_cls = QFLv2(
                     s_cls_scores.sigmoid(),
                     teacher_probs,
-                    weight=weight_mask,#使用样本对应的置信度进行加权
+                    weight=weight_mask,
                     reduction="sum",
                 ) / weight_mask.sum()
 
-            #cls的loss对前景和背景都计算loss，bbox和中心度只对正样本计算loss
             if self.bbox_loss_type == 'l1':
                 loss_bbox = (self.bbox_loss(
                     s_bbox_preds[b_mask],

@@ -243,13 +243,6 @@ class SemiMix1(RotatedSingleStageDetector):
                 batch_edges = self.ted_model(img_all * std + mean)
                 self.bbox_head.edges = batch_edges[3].clamp(0)
                 # cv2.imwrite('E.png', batch_edges[0].cpu().numpy() * 255)
-        
-        # # 为了rsst针对单张图片的loss新加  可以舍弃了,因为数据增强的效果肯定比单张图片要好
-        # if rsst_flag:
-        #     batch_inputs_all = img
-        #     feat = self.extract_feat(batch_inputs_all)
-        #     cls_score, bbox_pred, angle_pred, centerness = self.bbox_head.forward(feat, get_data)
-        #     return (cls_score, bbox_pred, angle_pred, centerness)
 
         batch_inputs_all = torch.cat((img, img_aug))
         batch_data_samples_all = []
@@ -265,13 +258,12 @@ class SemiMix1(RotatedSingleStageDetector):
         batch_gt_instances = [copy.deepcopy(data_sample['gt_instances']) for data_sample in batch_data_samples_all]
         batch_img_metas = [data_sample['metainfo'] for data_sample in batch_data_samples_all]
           
-        if rsst_flag:  # label无监督需要返回GT
+        if rsst_flag: 
             return (cls_score, bbox_pred, angle_pred, centerness, batch_gt_instances)
 
-        if get_data:   # unlabel无监督时候使用的是使用img得到的feat得到的预测结果.和GT没有关系
+        if get_data:
             return (cls_score, bbox_pred, angle_pred, centerness)
         
-        # 这里使用所有图片的FPN第一层的结果
         results_list = self.bbox_head.get_bboxes((cls_score[0],), 
                                                  (bbox_pred[0],), 
                                                  (angle_pred[0],),
@@ -289,7 +281,7 @@ class SemiMix1(RotatedSingleStageDetector):
             }
             converted_results_list.append(result_dict)
         
-        # Update point annotations with predicted rbox 水平框的没有变化
+        # Update point annotations with predicted rbox
         for data_sample, results in zip(batch_gt_instances, converted_results_list):
             mask = data_sample['bids'][:, 1] == 0
             data_sample['bboxes'][mask] = results['bboxes'][mask]
@@ -303,39 +295,6 @@ class SemiMix1(RotatedSingleStageDetector):
                                      batch_img_metas)
 
         self.debug = False
-        # if self.debug:
-        #     for i in range(len(batch_inputs_all)):
-        #         img = batch_inputs_all[i]
-        #         if self.bbox_head.vis[i]:
-        #             vor, wat = self.bbox_head.vis[i]
-        #             img[0, wat != wat.max()] += 2
-        #             img[:, vor != vor.max()] -= 1
-        #         img = img.permute(1, 2, 0).cpu().numpy()
-        #         img = np.ascontiguousarray(img[..., (2, 1, 0)] * 58 + 127)
-        #         bb = batch_data_samples_all[i]['gt_instances']['bboxes']
-        #         ll = batch_data_samples_all[i]['gt_instances']['labels']
-        #         for b, l in zip(bb.cpu().numpy(), ll.cpu().numpy()):
-        #             b[2:4] = b[2:4].clip(3)
-        #             plot_one_rotated_box(img, b, (255, 0, 0))
-        #         if i < len(converted_results_list):
-        #             bb = converted_results_list[i]['bboxes']
-        #             if hasattr(converted_results_list[i], 'informs'):
-        #                 for b, l in zip(bb.cpu().numpy(), converted_results_list[i].infoms.cpu().numpy()):
-        #                     plot_one_rotated_box(img, b, (0, 255, 0), label=f'{l}')
-        #             else:
-        #                 for b in bb.cpu().numpy():
-        #                     plot_one_rotated_box(img, b, (0, 255, 0))
-                            
-        #         full_path = batch_data_samples_all[i]['metainfo']['filename']
-        #         filename_with_ext = os.path.basename(full_path)
-        #         filename_only, ext = os.path.splitext(filename_with_ext)
-        #         img_id = filename_only
-        #         img = np.clip(img, 0, 255).astype(np.uint8)
-        #         cv2.imwrite(f'./show/{img_id}.png', img)
-        
-        # return losses
-    
-    
         if self.debug:
             for i in range(len(batch_inputs_all)):
                 img = batch_inputs_all[i]
@@ -344,38 +303,30 @@ class SemiMix1(RotatedSingleStageDetector):
                     img[0, wat != wat.max()] += 2
                     img[:, vor != vor.max()] -= 1
                 
-                # 1. 图像格式转换和数值范围调整
                 img = img.permute(1, 2, 0).cpu().numpy()
                 img = np.ascontiguousarray(img[..., (2, 1, 0)] * 58 + 127)
-                # 2. 【重要】在绘图前就将图像转为 uint8 类型
                 img = np.clip(img, 0, 255).astype(np.uint8)
                 
-                
-                # 3. 绘制绿色的预测框 (先画，线宽设置细一点)
                 if i < len(converted_results_list):
                     bb = converted_results_list[i]['bboxes']
                     if hasattr(converted_results_list[i], 'informs'):
                         for b, l in zip(bb.cpu().numpy(), converted_results_list[i].infoms.cpu().numpy()):
-                            # 使用 line_thickness 参数
                             plot_one_rotated_box(img, b, (0, 255, 0), label=f'{l}', line_thickness=1)
                     else:
                         for b in bb.cpu().numpy():
                             plot_one_rotated_box(img, b, (0, 255, 0), line_thickness=1)
-                
-                # 4. 绘制红色的真实框 (后画，会覆盖在绿色框之上，线宽粗一点)
+        
                 bb = batch_data_samples_all[i]['gt_instances']['bboxes']
                 ll = batch_data_samples_all[i]['gt_instances']['labels']
                 for b, l in zip(bb.cpu().numpy(), ll.cpu().numpy()):
                     # Use a small threshold for floating-point comparison
                     plot_one_rotated_box(img, b, (255, 0, 0), line_thickness=2)
                     
-                # 5. 保存图像
                 img_path = batch_data_samples_all[i]['metainfo']['filename']
                 import os
                 img_name = os.path.basename(img_path)
                 img_out = os.path.join('./show', img_name)
                 
-                # 由于前面已经转换过，这里无需再次转换
                 cv2.imwrite(img_out, img)
 
         return losses

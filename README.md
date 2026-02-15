@@ -1,61 +1,66 @@
-### [AAAI2025] Multi-clue Consistency Learning to Bridge Gaps Between General and Oriented Object in Semi-supervised Detection[https://arxiv.org/abs/2407.05909]
+### SPWOOD: Sparse Partial Weakly-Supervised Oriented Object Detection[https://arxiv.org/abs/2602.03634]
 
 ![mcl_arch](assets/pipeline.png)
 
 ## Abstract
 
-While existing semi-supervised object detection methods perform well in general scenes, they struggle with oriented objects. Our experiments reveal two inconsistency issues that stem from the gaps between general and oriented object detection in semi-supervised learning: 1) Assignment inconsistency: First, the common label assignment is inadequate for oriented objects with larger aspect ratios when selecting positive labels from labeled data. Second, balancing the precision and localization quality of oriented pseudo-boxes presents greater challenges, introducing more noise when selecting positive labels from unlabeled data. 2) Confidence inconsistency: there exists more mismatch between the predicted classification and localization qualities when considering oriented objects, affecting the selection of pseudo-labels. Therefore, we propose a Multi-clue Consistency Learning (MCL) framework to bridge the gaps between general and oriented objects in semi-supervised detection. Specifically, Gaussian Center Assignment is designed to select shape-aware positive labels from labeled data for oriented objects with larger aspect ratios, while Scale-aware Label Assignment is introduced to select scale-aware pixel-level pseudo-labels instead of unreliable pseudo-boxes from unlabeled data. The Consistent Confidence Soft Label is adopted to further boost the detector by maintaining the alignment of the predicted confidences. Experiments on DOTA-v1.5 and DOTA-v1.0 benchmarks demonstrate that the MCL can achieve state-of-the-art performance in the semi-supervised oriented object detection.
-
+A consistent trend throughout the research of oriented object detection has been the pursuit of maintaining comparable performance with fewer and weaker annotations. This is particularly crucial in the remote sensing domain, where the dense object distribution and a wide variety of categories contribute to prohibitively high costs. Based on the supervision level, existing oriented object detection algorithms can be broadly grouped into fully supervised, semi-supervised, and weakly supervised methods. Within the scope of this work, we further categorize them to include sparsely supervised and partially weakly-supervised methods. To address the challenges of large-scale labeling, we introduce the first Sparse Partial Weakly-Supervised Oriented Object Detection framework, designed to efficiently leverage only a few sparse weakly-labeled data and plenty of unlabeled data. Our framework incorporates three key innovations: (1) We design a Sparse-annotation-Orientation-and-Scale-aware Student (SOS-Student) model to separate unlabeled objects from the background in a sparsely-labeled setting, and learn orientation and scale information from orientation-agnostic or scale-agnostic weak annotations. (2) We construct a novel Multi-level Pseudo-label Filtering strategy that leverages the distribution of model predictions, which is informed by the model's multi-layer predictions. (3) We propose a unique sparse partitioning approach, ensuring equal treatment for each category. Extensive experiments on the DOTA and DIOR datasets show that our framework achieves a significant performance gain over traditional oriented object detection methods mentioned above, offering a highly cost-effective solution.
 
 ## Preparation
 
 ### Installation
 
-MMRotate-0.3.4 depends on [PyTorch](https://pytorch.org/), [MMCV](https://github.com/open-mmlab/mmcv) and [MMDetection](https://github.com/open-mmlab/mmdetection).
-Below are quick steps for installation.
-Please refer to [Install Guide](https://mmrotate.readthedocs.io/en/latest/install.html) for more detailed instruction.
-
 ```shell
-conda create -n mcl python==3.8 -y
-conda activate mcl
+conda create -n SPWOOD python==3.8 -y
+conda activate SPWOOD
 pip install torch==1.13.1+cu116 torchvision==0.14.1+cu116 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu116
 pip install -U openmim
 mim install mmcv-full
 mim install mmdet\<3.0.0
 
-git clone https://github.com/facias914/sood-mcl.git
-cd sood-mcl
+git clone https://github.com/VisionXLab/SPWOOD.git
+cd SPWOOD
 
-git clone https://github.com/open-mmlab/mmrotate.git    # 0.3.4
-cd mmrotate
+cd mmdetection
+pip install -v -e .
+
+cd ../mmrotate
 pip install -v -e .
 ```
 
 ### Data preparation
 
-Details about split the images of DOTA into patches, please follow [MMrotate](https://github.com/open-mmlab/mmrotate/blob/main/tools/data/dota/README.md)
-
-For spliting the DOTA-v1.5's train set via the released data list, please refer to [Data preparation of SOOD](https://github.com/HamPerdredes/SOOD)
+For spliting the DOTA dataset via the released data list, please refer to [tools](https://github.com/VisionXLab/SPWOOD/tools)
 
 The example of data setting:
 
 ```
-/workspace/DOTA/v15/
-├── train_split
-│   ├── images
-│   └── labelTxt
-├── val_split
-│   ├── images
-│   └── labelTxt
-├── test_split
-│   ├── images
-│   └── labelTxt  # Create an empty txt file for each image
-├── train_xx_labeled
-│   ├── images
-│   └── labelTxt
-└──train_xx_unlabeled
-    ├── images
-    └── labelTxt  # Create an empty txt file for each image
+/workspace/DOTA/v10/
+├── semi_ratio_10
+│   ├── sparse_ratio_10
+│   │    ├── label_annotation
+│   │    ├── label_image
+│   │    ├── unlabel_annotation
+│   │    └── unlabel_image
+│   ├── sparse_ratio_20
+│   │    ├── label_annotation
+│   │    ├── label_image
+│   │    ├── unlabel_annotation
+│   │    └── unlabel_image
+│   └── sparse_ratio_30
+│        ├── label_annotation
+│        ├── label_image
+│        ├── unlabel_annotation
+│        └── unlabel_image
+├── semi_ratio_20
+│   ├── ...  
+│   ├── ...   
+│   └── ...
+└── semi_ratio_30
+    ├── ...   
+    ├── ...  
+    └── ...
+
 ```
 
 ### Train
@@ -63,31 +68,18 @@ The example of data setting:
 ```shell
 CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --nnodes=1 \
 --node_rank=0 --master_addr="127.0.0.1" --nproc_per_node=2 --master_port=25500 \
-train.py configs_dota15/mcl/......py \
+train.py configs/......py \
 --launcher pytorch \
 --work-dir xxx
 ```
 
 
-
-## Acknowledgement
-The code is based upon:
-[SOOD](https://github.com/HamPerdredes/SOOD).
-Thanks for their great work!
-
-The reproducible code of ARSL, DenseTeacher, PseCo, UnbiasedTeacher is based upon:
-[ARSL](https://github.com/PaddlePaddle/PaddleDetection).
-[DenseTeacher](https://github.com/Megvii-BaseDetection/DenseTeacher).
-[PseCo](https://github.com/ligang-cs/PseCo).
-[UnbiasedTeacher](https://github.com/facebookresearch/unbiased-teacher).
-We appreciate all the authors who implement their methods. 
-
 ## Citation
 ```bibtex
-@article{wang2024multi,
-  title={Multi-clue Consistency Learning to Bridge Gaps Between General and Oriented Object in Semi-supervised Detection},
-  author={Wang, Chenxu and Xu, Chunyan and Gu, Ziqi and Cui, Zhen},
-  journal={arXiv preprint arXiv:2407.05909},
-  year={2024}
+@article{zhang2026spwood,
+  title={SPWOOD: Sparse Partial Weakly-Supervised Oriented Object Detection},
+  author={Zhang, Wei and Liu, Xiang and Liu, Ningjing and Liu, Mingxin and Liao, Wei and Xu, Chunyan and Yang, Xue},
+  journal={arXiv preprint arXiv:2602.03634},
+  year={2026}
 }
 ```

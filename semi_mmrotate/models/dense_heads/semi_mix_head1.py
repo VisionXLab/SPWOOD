@@ -264,11 +264,6 @@ class SemiMixHead1(RotatedAnchorFreeHead):
             bbox_pred = bbox_pred.exp()
 
         angle_pred = self.conv_angle(reg_feat)
-        # if get_data:
-        #     angle_pred = \
-        #     self.angle_coder.decode(angle_pred.reshape(-1, self.angle_coder.encode_size)).reshape(angle_pred.shape[0], 1, angle_pred.shape[2], angle_pred.shape[3])
-        # if self.is_scale_angle:
-        #    angle_pred = self.scale_angle(angle_pred).float()
         return cls_score, bbox_pred, angle_pred, centerness
 
     @force_fp32(
@@ -387,7 +382,6 @@ class SemiMixHead1(RotatedAnchorFreeHead):
         # FG cat_id: [0, num_classes -1], BG cat_id: num_classes
         bg_class_ind = self.num_classes
         pos_inds = ((flatten_labels >= 0)
-                    # & (flatten_labels != 2)
                     & (flatten_labels < bg_class_ind)).nonzero().reshape(-1)
 
         
@@ -400,8 +394,6 @@ class SemiMixHead1(RotatedAnchorFreeHead):
             len(pos_inds), dtype=torch.float, device=bbox_preds[0].device)
         num_pos = max(reduce_mean(num_pos), 1.0)
 
-        # loss_cls = self.loss_cls(
-        #         flatten_cls_scores[pos_inds], flatten_labels[pos_inds], avg_factor=num_pos)
         loss_cls = self.loss_cls(
             flatten_cls_scores, flatten_labels, avg_factor=num_pos)
 
@@ -515,21 +507,11 @@ class SemiMixHead1(RotatedAnchorFreeHead):
 
                 ins_labels = pos_labels.new_zeros(*bid.shape).index_reduce_(
                     0, idx, pos_labels[mask_point], 'amin', include_self=False)
-                
-                #ins_ws = pos_labels.new_zeros(*bid.shape).index_reduce_(
-                #    0, idx, pos_ws, 'amin', include_self=False)
-                #mask_point = ins_ws == 2
 
                 ins_gaus_preds = pos_gaus_preds.new_zeros(
                     *bid.shape, 4).index_reduce_(
                     0, idx, pos_gaus_preds.view(-1, 4), 'mean',
                     include_self=False).view(-1, 2, 2)
-                
-
-                #ins_rbox_preds = pos_rbox_preds.new_zeros(
-                #    *bid.shape, pos_rbox_preds.shape[-1]).index_reduce_(
-                #    0, idx, pos_rbox_preds[mask_point], 'mean',
-                #    include_self=False)
 
                 ins_rbox_targets = pos_rbox_targets.new_zeros(
                     *bid.shape, pos_rbox_targets.shape[-1]).index_reduce_(
@@ -881,8 +863,6 @@ class SemiMixHead1(RotatedAnchorFreeHead):
                    gt_bboxes.new_zeros((num_points, ))
 
         areas = gt_bboxes[:, 2] * gt_bboxes[:, 3]
-        # TODO: figure out why these two are different
-        # areas = areas[None].expand(num_points, num_gts)
         areas = areas[None].repeat(num_points, 1)
         regress_ranges = regress_ranges[:, None, :].expand(
             num_points, num_gts, 2)
@@ -971,8 +951,6 @@ class SemiMixHead1(RotatedAnchorFreeHead):
                    gt_bboxes.new_zeros((num_points, ))
 
         areas = gt_bboxes[:, 2] * gt_bboxes[:, 3]
-        # TODO: figure out why these two are different
-        # areas = areas[None].expand(num_points, num_gts)
         areas = areas[None].repeat(num_points, 1)
         regress_ranges = regress_ranges[:, None, :].expand(
             num_points, num_gts, 2)
@@ -1186,7 +1164,6 @@ class SemiMixHead1(RotatedAnchorFreeHead):
             scale_factor = scale_factor
         gt_bboxes = gt_instances['bboxes']
         gt_labels = gt_instances['labels']
-        # 在特征图上的位置
         gt_pos = (gt_bboxes[:, 0:2] / self.strides[0] * scale_factor[1]).long()  # num_gt*2
 
 
@@ -1198,7 +1175,6 @@ class SemiMixHead1(RotatedAnchorFreeHead):
         gt_valid_mask = (0 <= gt_pos[:, 0]) & (gt_pos[:, 0] < W) & (0 <= gt_pos[:, 1]) & (gt_pos[:, 1] < H)
         gt_idx = gt_pos[:, 1] * W + gt_pos[:, 0]
         gt_idx = gt_idx.clamp(0, cls_score[0].numel() - 1)
-        # 提取特征图上的预测值
         bbox_pred = bbox_pred.permute(1, 2, 0).reshape(-1, 4)[gt_idx]
 
         cls_score = cls_score.permute(1, 2, 0).reshape(-1, self.cls_out_channels)[gt_idx]

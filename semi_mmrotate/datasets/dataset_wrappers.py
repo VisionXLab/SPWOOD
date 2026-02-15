@@ -18,10 +18,10 @@ class SemiDataset(ConcatDataset):
 
 @DATASETS.register_module()
 class SparseDataset(ConcatDataset):
-    """Wrapper for semisupervised od."""
+    """Wrapper for semisparsesupervised od."""
 
-    def __init__(self, sup: dict, unsup_unlabeled: dict, unsup_labeled: dict, **kwargs):
-        super().__init__([build_dataset(sup), build_dataset(unsup_unlabeled), build_dataset(unsup_labeled)], **kwargs)
+    def __init__(self, sup: dict, unsup_unlabeled: dict, **kwargs):
+        super().__init__([build_dataset(sup), build_dataset(unsup_unlabeled)], **kwargs)
 
     @property
     def sup(self):
@@ -30,7 +30,3 @@ class SparseDataset(ConcatDataset):
     @property
     def unsup_unlabeled(self):
         return self.datasets[1]
-    
-    @property
-    def unsup_labeled(self):
-        return self.datasets[2]
