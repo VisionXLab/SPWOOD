@@ -30,7 +30,7 @@ pip install -v -e .
 
 ### Data preparation
 
-For spliting the DOTA dataset via the released data list, please refer to [tools](https://github.com/VisionXLab/SPWOOD/tools)
+For spliting the DOTA dataset via the released data list, please refer to [tools](https://github.com/VisionXLab/SPWOOD/tree/main/tools)
 
 The example of data setting:
 
